@@ -1,35 +1,35 @@
-# OMsignal Data
+OMsignal
+--------
 
-Data for the projet is provided by OMsignal and therefore, it is **private**. The data is stored on the Helios server into the following directory:
-* `/rap/jvb-000-aa/COURS2019/etudiants/data/omsignal/myHeartProject/`.
+**Data**:
 
++ Located at `/rap/jvb-000-aa/COURS2019/etudiants/data/omsignal/myHeartProject/` (Helios).
 
 The provided data is split into 3 binary files:
-* `MILA_TrainLabeledData.dat` - labeled data for supervised training
-* `MILA_ValidationLabeledData.dat` -  labeled data for validation,
-* `MILA_UnlabeledData.dat` -  unlabeled data.
 
++ `MILA_TrainLabeledData.dat` - labeled data for supervised training
++ `MILA_ValidationLabeledData.dat` -  labeled data for validation,
++ `MILA_UnlabeledData.dat` -  unlabeled data.
 
 Each labeled dataset (`MILA_TrainLabeledData.dat` and `MILA_ValidationLabeledData.dat`) contains 5 windows of 30 second length ECG data (sampled at 125 Hz) for each of the 32 participants. For each participant, the corresponding samples in the `MILA_TrainLabeledData.dat` and `MILA_ValidationLabeledData.dat` datasets have **not** been collected the **same** day. Similarly, the dataset on which your script will be evaluated contains, for each participant, samples collected on a **different** day too.
 
-
 For the labeled datasets (`MILA_TrainLabeledData.dat` and `MILA_ValidationLabeledData.dat`), the description of the provided data is as follows:
-* `Shape = 160 x 3754` - where `160 = 5 x 32 ` corresponds to the number of windows.
-* `Column 0` to `Column 3749` - Columns corresponding to the ECG data ( `30 seconds x 125 Hz = 3750` ). They contain `float` values.
-* `Column 3750` - Columns corresponding to the `PR_Mean` of the corresponding ECG sample. It contains `float` values.
-* `Column 3751` - Columns corresponding to the `RT_Mean` of the corresponding ECG sample. It contains `float` values.
-* `Column 3752` - Columns corresponding to the `RR_StdDev` of the corresponding ECG sample. It contains `float` values.
-* `Column 3753` - Columns corresponding to the `ID` of the participant. It contains `int` values.
+
++ `Shape = 160 x 3754` - where `160 = 5 x 32 ` corresponds to the number of windows.
++ `Column 0` to `Column 3749` - Columns corresponding to the ECG data ( `30 seconds x 125 Hz = 3750` ). They contain `float` values.
++ `Column 3750` - Columns corresponding to the `PR_Mean` of the corresponding ECG sample. It contains `float` values.
++ `Column 3751` - Columns corresponding to the `RT_Mean` of the corresponding ECG sample. It contains `float` values.
++ `Column 3752` - Columns corresponding to the `RR_StdDev` of the corresponding ECG sample. It contains `float` values.
++ `Column 3753` - Columns corresponding to the `ID` of the participant. It contains `int` values.
 
 The description of the unlabeled dataset (`MILA_UnlabeledData.dat`) is as follows:
-* `Shape = 657233 x 3750` - where `657233 ` corresponds to the remaining number of unlabeled windows.
-* `Column 0` to `Column 3749` - Columns corresponding to the ECG data ( `30 seconds x 125 Hz = 3750` ). They contain `float` values.
 
++ `Shape = 657233 x 3750` - where `657233 ` corresponds to the remaining number of unlabeled windows.
++ `Column 0` to `Column 3749` - Columns corresponding to the ECG data ( `30 seconds x 125 Hz = 3750` ). They contain `float` values.
 
 For Block 1, only labeled datasets (`MILA_TrainLabeledData.dat` and `MILA_ValidationLabeledData.dat`) should be considered. The unlabeled dataset is used for the unsupervised parts of Blocks `2` and `3`.
 
-
-## User ID
+**ID Mapping**
 
 In the labeled datasets, the `max` value of the `ID` is `43` and the `min` value is `0`. However, there is only `32` participants. For the classification task, you ** must ** define a map of the provided IDs to classes that belong to the range `0 -- 31`.
 ** ATTENTION: ** when reporting your results for final evaluation, you ** must remapping back ** your predicted classes to the original values, otherwise you may have **bad surprises**.
