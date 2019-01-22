@@ -49,63 +49,101 @@ def write_memfile(data, filename):
     del fp
 
 
-def load_data():
-    """Returns a dictionary containing the train and valid datasets."""
-
-    train = read_memfile(
-        os.path.join(CONFIG['data'], 'MILA_TrainLabeledData.dat'),
-        shape=(160, 3754), dtype='float32'
-    )
-
-    valid = read_memfile(
-        os.path.join(CONFIG['data'], 'MILA_ValidationLabeledData.dat'),
-        shape=(160, 3754), dtype='float32'
-    )
-
-    train_X = train[:, :3750]
-    valid_X = valid[:, :3750]
-    train_y = train[:, 3750:]
-    valid_y = valid[:, 3750:]
-
-    datasets = {'train': {'X': train_X, 'y': train_y},
-                'valid': {'X': valid_X, 'y': valid_y}
-    }
-
-    # y_map is fit to the final column of y, which represents ID
-    y_map = LabelEncoder()
-    y_map.fit(datasets['train']['y'][:, -1])
-
-    return(datasets, y_map)
-
-
-def convert_y(datasets, y_map):
+class Data():
     """
-    y_map is a LabelEncoder instance fit to the training data.
-    datasets is a dictionary containing the training and validation data.
-
-    Will automatically flip the ID column of the data  between original labels
-    (max=42) and transformed labels (max=31).
+    Object for handling the data, as well as transformations.
     """
 
-    # handle type conversion explicitly for compatibility with y_map
-    ids_train = datasets['train']['y'][:, -1].astype(np.int)
-    ids_valid = datasets['valid']['y'][:, -1].astype(np.int)
+    def __init__(self):
+        """
+        Loads the data into memory, as well as a method for switching
+        user IDs from the original format into a model-friendly format.
+        """
 
-    # Labels are in original format, transform to model-friendly format.
-    if np.max(ids_train) == 42:
-        datasets['train']['y'][:, -1] = y_map.transform(ids_train)
-        datasets['valid']['y'][:, -1] = y_map.transform(ids_valid)
-
-    # Labels are in model-friendly format, transform to original format.
-    elif np.max(ids_train) == 31:
-        datasets['train']['y'][:, -1] = y_map.inverse_transform(ids_train)
-        datasets['valid']['y'][:, -1] = y_map.inverse_transform(ids_valid)
-
-    # Labels have been tampered with, this is bad.
-    else:
-        raise Exception('Training labels have an illegal max={}'.format(
-            np.max(ids_train))
+        train = read_memfile(
+            os.path.join(CONFIG['data'], 'MILA_TrainLabeledData.dat'),
+            shape=(160, 3754), dtype='float32'
         )
+
+        valid = read_memfile(
+            os.path.join(CONFIG['data'], 'MILA_ValidationLabeledData.dat'),
+            shape=(160, 3754), dtype='float32'
+        )
+
+        self.train_X = train[:, :3750]
+        self.valid_X = valid[:, :3750]
+        self.train_y = train[:, 3750:]
+        self.valid_y = valid[:, 3750:]
+
+        # y_map is fit to the final column of y, which represents ID
+        self.ymap = LabelEncoder()
+        self.ymap.fit(self.train_y[:, -1])
+
+        # keep track of the current data format
+        self.format = 'numpy'
+
+    def to_torch(self):
+        """Converts data to pytorch format."""
+        if self.format == 'torch':
+            return
+
+        self.train_X = torch.Tensor(self.train_X)
+        self.valid_X = torch.Tensor(self.valid_X)
+        self.train_y = torch.Tensor(self.train_y)
+        self.valid_y = torch.Tensor(self.valid_y)
+        self.format = 'torch'
+
+    def to_numpy(self):
+        """Converts data to numpy format."""
+        if self.format == 'numpy':
+            return
+
+        self.train_X = self.train_X.numpy()
+        self.valid_X = self.valid_X.numpy()
+        self.train_y = self.train_y.numpy()
+        self.valid_y = self.valid_y.numpy()
+        self.format = 'numpy'
+
+    def convert_y(self):
+        """
+        y_map is a LabelEncoder instance fit to the training data.
+        datasets is a dictionary containing the training and validation data.
+
+        Will automatically flip the ID column of the data  between original
+        labels (max=42) and transformed labels (max=31).
+        """
+        if self.format == 'torch':
+            raise Exception('convert_y must be run with data in numpy format')
+
+        # Handle type conversion explicitly for compatibility with ymap
+        ids_train = self.train_y[:, -1].astype(np.int)
+        ids_valid = self.valid_y[:, -1].astype(np.int)
+
+        # Labels are in original format, transform to model-friendly format.
+        if np.max(ids_train) == 42:
+            self.train_y[:, -1] = self.ymap.transform(ids_train)
+            self.valid_y[:, -1] = self.ymap.transform(ids_valid)
+
+        # Labels are in model-friendly format, transform to original format.
+        elif np.max(ids_train) == 31:
+            self.train_y[:, -1] = self.ymap.inverse_transform(ids_train)
+            self.valid_y[:, -1] = self.ymap.inverse_transform(ids_valid)
+
+        # Labels have been tampered with, this is bad.
+        else:
+            raise Exception('Training labels have an illegal max={}'.format(
+                np.max(ids_train))
+            )
+
+    def preprocess(self):
+        """Runs a preprocessor on the X data."""
+        # TODO: config options here
+        if self.format == 'numpy':
+            raise Exception('Data must be in torch format to preprocess.')
+
+        preproc = Preprocessor()
+        self.train_X = preproc.forward(self.train_X)
+        self.valid_X = preproc.forward(self.valid_X)
 
 
 class Preprocessor(nn.Module):
@@ -113,44 +151,46 @@ class Preprocessor(nn.Module):
     def __init__(
             self, ma_win=2, mv_win=4, num_samples_per_second=125):
         """
-        ma_win: window size (secs) to use for moving average baseline wander removal
-        mv_win: window size (secs) to use for moving average RMS normalization
+        ma_win: window size (secs) for moving average baseline wander removal
+        mv_win: window size (secs) for moving average RMS normalization
         """
 
         super(Preprocessor, self).__init__()
 
         # Kernel size to use for moving average baseline wander removal: 2
         # seconds * 125 HZ sampling rate, + 1 to make it odd
-        self.maKernelSize = (ma_win * num_samples_per_second)+1
+        self.ma_kernel = (ma_win * num_samples_per_second)+1
 
         # Kernel size to use for moving average normalization: 4
         # seconds * 125 HZ sampling rate , + 1 to make it odd
-        self.mvKernelSize = (mv_win * num_samples_per_second)+1
+        self.mv_kernel = (mv_win * num_samples_per_second)+2
 
     def forward(self, x):
 
+        eps = 1e-5
+
         with torch.no_grad():
 
-            # Remove window mean and standard deviation
-            x = (x - torch.mean(x, dim=2, keepdim=True)) / \
-                (torch.std(x, dim=2, keepdim=True) + 0.00001)
+            x = x.unsqueeze(0)
 
-            # Moving average baseline wander removal
+            # Moving average baseline wander removal.
             x = x - F.avg_pool1d(
-                x, kernel_size=self.maKernelSize,
-                stride=1, padding=(self.maKernelSize - 1) // 2
+                x, kernel_size=self.ma_kernel,
+                stride=1, padding=(self.ma_kernel - 1) // 2
             )
 
-            # Moving RMS normalization
-            x = x / (
-                torch.sqrt(
-                    F.avg_pool1d(
-                        torch.pow(x, 2),
-                        kernel_size=self.mvKernelSize,
-                        stride=1, padding=(self.mvKernelSize - 1) // 2
-                    )
-                ) + 0.00001
+            # Moving RMS normalization.
+            x = x / (torch.sqrt(F.avg_pool1d(torch.pow(x, 2),
+                kernel_size=self.mv_kernel-1, stride=1,
+                padding=(self.mv_kernel-1) // 2)) + eps
             )
+
+            # Remove total mean and standard deviation.
+            x = (x - torch.mean(x, dim=2, keepdim=True)) / (torch.std(x,
+                dim=2, keepdim=True) + eps)
+
+        # Get rid of singleton dimension.
+        x = x.squeeze()
 
         # Don't backpropagate further.
         x = x.detach().contiguous()
@@ -321,13 +361,8 @@ def score_example():
     ecgId_pred = np.random.randint(low=0, high=32, size=(480,), dtype=np.int32)
     ecgId_true = np.random.randint(low=0, high=32, size=(480,), dtype=np.int32)
 
-    print(
-        scorePerformance(
-            prMean_true, prMean_pred,
-            rtMean_true, rtMean_pred,
-            rrStd_true, rrStd_pred,
-            ecgId_true, ecgId_pred
-        )
+    print(scorePerformance(prMean_true, prMean_pred, rtMean_true, rtMean_pred,
+        rrStd_true, rrStd_pred, ecgId_true, ecgId_pred)
     )
 
 
