@@ -2,10 +2,13 @@
 Utilities for handling data.
 """
 
+from copy import copy
 from scipy import signal
 from scipy.stats import kendalltau
 from sklearn.metrics import recall_score
 from sklearn.preprocessing import LabelEncoder
+from torch.utils.data import Dataset
+from colorednoise import powerlaw_psd_gaussian
 import numpy as np
 import os
 import torch
@@ -22,6 +25,9 @@ import matplotlib.pyplot as plt
 with open('config.yml', 'r') as fname:
     CONFIG = yaml.load(fname)
 
+
+# seed for testing purposes
+np.random.seed(seed=12345678)
 
 def read_memfile(filename, shape, dtype='float32'):
     """
@@ -41,7 +47,6 @@ def write_memfile(data, filename):
     Write a numpy array 'data' into a binary  data file specified by
     'filename'.
     """
-
     shape = data.shape
     dtype = data.dtype
     fp = np.memmap(filename, dtype=dtype, mode='w+', shape=shape)
@@ -49,48 +54,68 @@ def write_memfile(data, filename):
     del fp
 
 
-class Data():
+class Data(Dataset):
     """
-    Object for handling the data, as well as transformations.
+    Object for handling the data, as well as augmentations.
     """
 
-    def __init__(self):
+    def __init__(self, train=True, augmentation=False):
         """
         Loads the data into memory, as well as a method for switching
         user IDs from the original format into a model-friendly format.
         """
+        if train:
+            filename = 'MILA_TrainLabeledData.dat'
+        else:
+            filename = 'MILA_ValidationLabeledData.dat'
 
-        train = read_memfile(
-            os.path.join(CONFIG['data'], 'MILA_TrainLabeledData.dat'),
+        data = read_memfile(
+            os.path.join(CONFIG['data'], filename),
             shape=(160, 3754), dtype='float32'
         )
 
-        valid = read_memfile(
-            os.path.join(CONFIG['data'], 'MILA_ValidationLabeledData.dat'),
-            shape=(160, 3754), dtype='float32'
-        )
+        self.X = data[:, :3750]
+        self.y = data[:, 3750:]
 
-        self.train_X = train[:, :3750]
-        self.valid_X = valid[:, :3750]
-        self.train_y = train[:, 3750:]
-        self.valid_y = valid[:, 3750:]
-
-        # y_map is fit to the final column of y, which represents ID
-        self.ymap = LabelEncoder()
-        self.ymap.fit(self.train_y[:, -1])
-
-        # keep track of the current data format
+        # Keep track of the current data format.
         self.format = 'numpy'
+        self.augmentation = augmentation
+
+        # ymap is fit to the final column of y, which represents ID.
+        self.ymap = LabelEncoder()
+        self.ymap.fit(self.y[:, -1])
+
+        # y is automatically converted to model-friendly format
+        self.convert_y()
+
+        # Preprocess the data.
+        self.to_torch()
+        preproc = Preprocessor()
+        self.X = preproc.forward(self.X)
+
+    def __len__(self):
+        """Returns the number of samples."""
+        return(len(self.landmarks_frame))
+
+    def __getitem__(self, idx):
+        """Returns a single ECG time series from the dataset."""
+        if self.format == 'numpy':
+            raise Exception('Torch format required for __getitem__.')
+
+        sample = self.X[idx, :]
+
+        if self.augmentation:
+            sample = self.augment(sample)
+
+        return(sample)
 
     def to_torch(self):
         """Converts data to pytorch format."""
         if self.format == 'torch':
             return
 
-        self.train_X = torch.Tensor(self.train_X)
-        self.valid_X = torch.Tensor(self.valid_X)
-        self.train_y = torch.Tensor(self.train_y)
-        self.valid_y = torch.Tensor(self.valid_y)
+        self.X = torch.Tensor(self.X)
+        self.y = torch.Tensor(self.y)
         self.format = 'torch'
 
     def to_numpy(self):
@@ -98,10 +123,8 @@ class Data():
         if self.format == 'numpy':
             return
 
-        self.train_X = self.train_X.numpy()
-        self.valid_X = self.valid_X.numpy()
-        self.train_y = self.train_y.numpy()
-        self.valid_y = self.valid_y.numpy()
+        self.X = self.X.numpy()
+        self.y = self.y.numpy()
         self.format = 'numpy'
 
     def convert_y(self):
@@ -116,34 +139,48 @@ class Data():
             raise Exception('convert_y must be run with data in numpy format')
 
         # Handle type conversion explicitly for compatibility with ymap
-        ids_train = self.train_y[:, -1].astype(np.int)
-        ids_valid = self.valid_y[:, -1].astype(np.int)
+        ids = self.y[:, -1].astype(np.int)
 
         # Labels are in original format, transform to model-friendly format.
-        if np.max(ids_train) == 42:
-            self.train_y[:, -1] = self.ymap.transform(ids_train)
-            self.valid_y[:, -1] = self.ymap.transform(ids_valid)
+        if np.max(ids) == 42:
+            self.y[:, -1] = self.ymap.transform(ids)
 
         # Labels are in model-friendly format, transform to original format.
-        elif np.max(ids_train) == 31:
-            self.train_y[:, -1] = self.ymap.inverse_transform(ids_train)
-            self.valid_y[:, -1] = self.ymap.inverse_transform(ids_valid)
+        elif np.max(ids) == 31:
+            self.y[:, -1] = self.ymap.inverse_transform(ids)
 
         # Labels have been tampered with, this is bad.
         else:
             raise Exception('Training labels have an illegal max={}'.format(
-                np.max(ids_train))
+                np.max(ids))
             )
 
-    def preprocess(self):
-        """Runs a preprocessor on the X data."""
-        # TODO: config options here
-        if self.format == 'numpy':
-            raise Exception('Data must be in torch format to preprocess.')
+    def augment(self, sample):
+        """
+        Returns an augmented sample from X.
+        1. Adds pink noise (scaled by noise_gain in config) to all timepoints.
+        2. Rotates the signal by wrapping values from the start to the end.
+        3. Calculates the spectra of the signal and concatenates these features
+           to the ECG timeseries. TODO: add spectrogram?
+        """
+        n = len(sample)
 
-        preproc = Preprocessor()
-        self.train_X = preproc.forward(self.train_X)
-        self.valid_X = preproc.forward(self.valid_X)
+        noise = powerlaw_psd_gaussian(1, len(sample)) # 1 = pink noise
+        sample += torch.Tensor(noise)*CONFIG['noise_gain']
+
+        rotated_sample = torch.zeros(n)
+        start_idx = np.random.randint(0, n, 1)[0]
+        start_len = n - start_idx
+        rotated_sample[:start_len] = sample[start_idx:]
+        rotated_sample[start_len:] = sample[:start_idx]
+
+        fft_real, fft_imag = make_fft(rotated_sample)
+        fft_real = torch.Tensor(np.abs(fft_real)**2) # PSD conversion
+        fft_imag = torch.Tensor(fft_imag)
+
+        sample = torch.cat([rotated_sample, fft_real, fft_imag])
+
+        return(sample)
 
 
 class Preprocessor(nn.Module):
@@ -401,4 +438,5 @@ if __name__ == '__main__':
     # reads fake ecg data and plots a Spectogram
     f, t, Zxx = make_spectogram(fake_ecg, True)
     plot_spectrogram(f, t, Zxx)
+
 
