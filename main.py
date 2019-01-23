@@ -7,21 +7,15 @@ import visualize
 def main():
 
     preproc = utils.Preprocessor()
-    data = utils.Data()
+    train_data = utils.Data(augmentation=True)
+    valid_data = utils.Data(train=False, augmentation=True)
 
-    # converts y to model-friendly format
-    data.convert_y()
+    print('__getitem__: {}'.format(train_data[0]))
 
-    # data to pytorch format (for preprocessing)
-    data.to_torch()
-
-    # data is preprocessed (see utils.Preprocessor)
-    data.preprocess()
-
-    # data converted to numpy format (for PCA)
-    data.to_numpy()
-
-    # generates a PCA embedding of the data
+    # convert to numpy for data visualization
+    train_data.to_numpy()
+    valid_data.to_numpy()
+    visualize.plot_spectra(train_data)
     visualize.pca(data)
 
 
