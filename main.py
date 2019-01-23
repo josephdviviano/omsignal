@@ -24,6 +24,9 @@ def main():
     # generates a PCA embedding of the data
     visualize.pca(data)
 
+    #generate a TSNE embedding of the data
+    visualize.tsne(data)
+
 
 if __name__ == "__main__":
     main()
