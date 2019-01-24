@@ -16,7 +16,8 @@ def main():
     train_data.to_numpy()
     valid_data.to_numpy()
     visualize.plot_spectra(train_data)
-    visualize.pca(data)
+    visualize.pca(train_data)
+    visualize.tsne(train_data)
 
 
 if __name__ == "__main__":
