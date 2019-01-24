@@ -39,8 +39,8 @@ def tsne(data,name='tsne'):
     
     mdl = TSNE(n_components=2, random_state=0,
             perplexity=5, learning_rate=1, n_iter=10000)
-    mdl.fit(data.X)
-    emb = mdl.transform(data.X)
+    
+    emb = mdl.fit_transform(data.X)
     
     
     plt.scatter(emb[:, 0], emb[:, 1], c=data.y[:, -1])
