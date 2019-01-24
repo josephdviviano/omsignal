@@ -1,4 +1,5 @@
 from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 from utils import make_fft
 import numpy as np
 import os
