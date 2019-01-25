@@ -1,2 +1,9 @@
 data: '/rap/jvb-000-aa/COURS2019/etudiants/data/omsignal/myHeartProject/'
-noise_gain: 1
+preprocessing:
+  noise_gain: 1
+dataloader:
+  batch_size: 64
+  shuffle: True
+  num_workers: 6
+training:
+  epochs: 100

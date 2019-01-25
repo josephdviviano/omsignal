@@ -21,13 +21,16 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-# Loads the configuration file as a global variable.
-with open('config.yml', 'r') as fname:
-    CONFIG = yaml.load(fname)
-
-
 # seed for testing purposes
 np.random.seed(seed=12345678)
+
+
+def read_config():
+    """Returns the config.yml file as a dictionary."""
+    with open('config.yml', 'r') as fname:
+        return(yaml.load(fname))
+
+CONFIG = read_config()
 
 def read_memfile(filename, shape, dtype='float32'):
     """
@@ -81,6 +84,9 @@ class Data(Dataset):
         self.format = 'numpy'
         self.augmentation = augmentation
 
+        # used for preprocessing
+        self.preproc = Preprocessor()
+
         # ymap is fit to the final column of y, which represents ID.
         self.ymap = LabelEncoder()
         self.ymap.fit(self.y[:, -1])
@@ -88,29 +94,33 @@ class Data(Dataset):
         # y is automatically converted to model-friendly format
         self.convert_y()
 
-        # Preprocess the data.
-        self.to_torch()
-        preproc = Preprocessor()
-        self.X = preproc.forward(self.X)
 
     def __len__(self):
         """Returns the number of samples."""
-        return(len(self.landmarks_frame))
+        return(len(self.X))
 
     def __getitem__(self, idx):
-        """Returns a single ECG time series from the dataset."""
-        if self.format == 'numpy':
-            raise Exception('Torch format required for __getitem__.')
+        """
+        Returns a single preprocessed (and optionally augmented) ECG time
+        series and associated labels from the dataset.
+        """
 
-        sample = self.X[idx, :]
+        X = self.X[idx, :]
+        y = self.y[idx, :]
+
+        if self.format == 'numpy':
+            X = torch.Tensor(X)
+            y = torch.Tensor(y)
+
+        X = self.preproc.forward(X)
 
         if self.augmentation:
-            sample = self.augment(sample)
+            X = self.augment(X)
 
-        return(sample)
+        return(X, y)
 
     def to_torch(self):
-        """Converts data to pytorch format."""
+        """Converts all data to pytorch format."""
         if self.format == 'torch':
             return
 
@@ -166,7 +176,7 @@ class Data(Dataset):
         n = len(sample)
 
         noise = powerlaw_psd_gaussian(1, len(sample)) # 1 = pink noise
-        sample += torch.Tensor(noise)*CONFIG['noise_gain']
+        sample += torch.Tensor(noise)*CONFIG['preprocessing']['noise_gain']
 
         rotated_sample = torch.zeros(n)
         start_idx = np.random.randint(0, n, 1)[0]
@@ -208,7 +218,9 @@ class Preprocessor(nn.Module):
 
         with torch.no_grad():
 
-            x = x.unsqueeze(0)
+            # Add two dummy dimensions for (batch_size, sample) respectively
+            # i.e., x is (batch_size=1, sample=1, timeseries=n_elements).
+            x = x.unsqueeze(0).unsqueeze(0)
 
             # Moving average baseline wander removal.
             x = x - F.avg_pool1d(
@@ -228,6 +240,9 @@ class Preprocessor(nn.Module):
 
         # Get rid of singleton dimension.
         x = x.squeeze()
+
+        # Final element is always zero.
+        x = x[:-1]
 
         # Don't backpropagate further.
         x = x.detach().contiguous()
