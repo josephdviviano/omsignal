@@ -7,3 +7,8 @@ dataloader:
   num_workers: 6
 training:
   epochs: 100
+  embedding_dim: 30
+  hidden_dim : 1000
+  num_layer : 3
+  learning_rate : 0.01
+  out_dim : 2
