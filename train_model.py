@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
@@ -46,7 +48,7 @@ class RNN(nn.Module):
         super(RNN, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=False)
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_size, num_classes)
         self.softmax = nn.LogSoftmax()
 
@@ -80,11 +82,11 @@ for epoch in range(num_epochs):
 
         # Transfer to GPU
         X_train, y_train = X_train.to(device), y_train.to(device)
-        
+
 
         # Forward pass
         y_train=torch.tensor(y_train,dtype=torch.long,device=device)
-        outputs = model(X_train)
+        outputs = model(X_train.unsqueeze(2)) # add num_features dimension (2)
         loss = criterion(outputs,y_train)
 
         # Backward and optimize
