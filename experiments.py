@@ -18,8 +18,6 @@ def calc_losses(y_hats, y_train, out_types, reg_loss, clf_loss, verb=False):
     losses = []
     scores = []
 
-    msg = 'scores: '
-
     for i in range(len(out_types)):
         y_hat = y_hats[i]
         y_tru = y_train[:, i]
@@ -30,7 +28,6 @@ def calc_losses(y_hats, y_train, out_types, reg_loss, clf_loss, verb=False):
 
             # Mean squared error.
             scores.append(loss)
-            msg += 'mse={:.2f} '.format(loss.item())
 
         elif out_types[i] == 'classification':
             loss = clf_loss(y_hat, y_tru.long())
@@ -40,21 +37,11 @@ def calc_losses(y_hats, y_train, out_types, reg_loss, clf_loss, verb=False):
             _, preds = torch.max(y_hat.data, 1)
             n_correct = torch.sum(preds == y_tru.long().data)
             scores.append(n_correct)
-            msg += 'acc={:.2f} '.format(n_correct.item())
-
-    if verb:
-        print(msg)
 
     return(losses, scores)
 
 
 def train(mdl, optimizer):
-
-    loader_params = {
-        'batch_size': CONFIG['dataloader']['batch_size'],
-        'shuffle': CONFIG['dataloader']['shuffle'],
-        'num_workers': CONFIG['dataloader']['num_workers']
-    }
 
     out_dims = CONFIG['models']['lstm']['out_dims']
     out_types = CONFIG['models']['lstm']['out_types']
@@ -66,11 +53,21 @@ def train(mdl, optimizer):
     scheduler = ReduceLROnPlateau(optimizer, patience=10)
     valid_loss = 10000 # initial value
 
+    train_data = utils.Data(train=True, augmentation=True)
+    valid_data = utils.Data(train=False, augmentation=False)
+
     # Set up Dataloaders.
-    train_data = utils.Data(augmentation=True)
-    valid_data = utils.Data(train=False, augmentation=True)
-    train_load = data.DataLoader(train_data, **loader_params)
-    valid_load = data.DataLoader(valid_data, **loader_params)
+    train_load = data.DataLoader(train_data,
+        batch_size=CONFIG['dataloader']['batch_size'],
+        num_workers=CONFIG['dataloader']['num_workers'],
+        shuffle=CONFIG['dataloader']['shuffle']
+    )
+
+    # Can't shuffle the valid_load so we can use evaluation script.
+    valid_load = data.DataLoader(valid_data,
+        batch_size=CONFIG['dataloader']['batch_size'],
+        num_workers=CONFIG['dataloader']['num_workers']
+    )
 
     # Configure CUDA.
     #device = torch.device("cuda:0" if CUDA else "cpu")
@@ -137,6 +134,9 @@ def train(mdl, optimizer):
 
         valid_loss /= (batch_idx+1)
 
+        # aggregate scores from calc_losses, and then check them here
+        #utils.scorePerformance()
+
         t2 = time.time()
         time_elapsed = t2-t1
 
@@ -149,8 +149,9 @@ def train(mdl, optimizer):
 def lstm():
     """Trains a LSTM classifier."""
 
-    seq_len  = CONFIG['models']['lstm']['sequence_len']
-    hid_dim  = CONFIG['models']['lstm']['hidden_dim']
+    ts_len   = CONFIG['models']['lstm']['ts_len']
+    spec_len = CONFIG['models']['lstm']['spec_len']
+    hid_dim  = CONFIG['models']['lstm']['hid_dim']
     layers   = CONFIG['models']['lstm']['num_layers']
     dropout  = CONFIG['models']['lstm']['dropout']
     out_dims = CONFIG['models']['lstm']['out_dims']
@@ -158,7 +159,7 @@ def lstm():
     momentum = CONFIG['training']['momentum']
     l2       = CONFIG['training']['l2']
 
-    mdl = models.LSTMClassifier(seq_len, hid_dim, layers, dropout, out_dims)
+    mdl = models.LSTMClassifier(ts_len, spec_len, hid_dim, layers, dropout, out_dims)
     optimizer = optim.SGD(
         mdl.parameters(), lr=lr, momentum=momentum, weight_decay=l2
     )
