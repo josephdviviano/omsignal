@@ -121,18 +121,15 @@ class Data(Dataset):
         if self.augmentation:
             X = self.augment(X)
 
-        # All samples have spectra computed regardless of augmentation.
-        fft_real, fft_imag = make_fft(X)
-        fft_real = torch.Tensor(np.abs(fft_real)**2) # PSD conversion
-        fft_imag = torch.Tensor(fft_imag)
+        # All samples have (normalized) spectra computed regardless of
+        # augmentation.
+        _, pxx = signal.welch(X)
+        spectra = torch.Tensor(pxx)
+        spectra /= torch.std(spectra)
 
-        # Normalize spectra to range [0 1]
-        fft_real /= torch.max(fft_real)
-        fft_imag /= torch.max(fft_imag)
-
-        # see config.yml for
-        # ts_len=X.size(), spec_len=fft_real.size()+fft_imag.size()
-        X = torch.cat([X, fft_real, fft_imag])
+        # See config.yml for ts_len=X.size(), spec_len=spectra.size()
+        # which is used by the model to split X appropriately.
+        X = torch.cat([X, spectra])
 
         return(X, y)
 
