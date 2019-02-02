@@ -103,6 +103,10 @@ class Data(Dataset):
         """
         Returns a single preprocessed (and optionally augmented) ECG time
         series and associated labels from the dataset.
+        1. Optionally augments the data (rotations, added noise).
+        2. Calculates the PSD (power spectral density) of the signal and
+           concatenates these features to the ECG timeseries.
+        3. TODO: add spectrogram?
         """
 
         X = self.X[idx, :]
@@ -116,6 +120,16 @@ class Data(Dataset):
 
         if self.augmentation:
             X = self.augment(X)
+
+        # All samples have (normalized) spectra computed regardless of
+        # augmentation.
+        _, pxx = signal.welch(X)
+        spectra = torch.Tensor(pxx)
+        spectra /= torch.std(spectra)
+
+        # See config.yml for ts_len=X.size(), spec_len=spectra.size()
+        # which is used by the model to split X appropriately.
+        X = torch.cat([X, spectra])
 
         return(X, y)
 
@@ -170,8 +184,6 @@ class Data(Dataset):
         Returns an augmented sample from X.
         1. Adds pink noise (scaled by noise_gain in config) to all timepoints.
         2. Rotates the signal by wrapping values from the start to the end.
-        3. Calculates the spectra of the signal and concatenates these features
-           to the ECG timeseries. TODO: add spectrogram?
         """
         n = len(sample)
 
@@ -184,13 +196,7 @@ class Data(Dataset):
         rotated_sample[:start_len] = sample[start_idx:]
         rotated_sample[start_len:] = sample[:start_idx]
 
-        fft_real, fft_imag = make_fft(rotated_sample)
-        fft_real = torch.Tensor(np.abs(fft_real)**2) # PSD conversion
-        fft_imag = torch.Tensor(fft_imag)
-
-        sample = torch.cat([rotated_sample, fft_real, fft_imag])
-
-        return(sample)
+        return(rotated_sample)
 
 
 class Preprocessor(nn.Module):

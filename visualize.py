@@ -17,7 +17,7 @@ def pca(data, name='pca'):
     emb = mdl.transform(data.X)
 
     plt.scatter(emb[:, 0], emb[:, 1], c=data.y[:, -1])
-    plt.savefig('{}.jpg'.format(name))
+    plt.savefig('img/{}.jpg'.format(name))
     plt.close()
 
 
@@ -29,25 +29,21 @@ def plot_spectra(data, name='spec'):
         spec, _ = make_fft(data.X[0, :])
         mean_spec += np.abs(spec)**2
     mean_spec /= n
+
     plt.loglog(mean_spec)
-    plt.savefig('{}.jpg'.format(name))
+    plt.savefig('img/{}.jpg'.format(name))
     plt.close()
 
 
+def tsne(data, name='tsne'):
 
-def tsne(data,name='tsne'):
-    
     mdl = TSNE(n_components=2, random_state=0,
             perplexity=5, learning_rate=1, n_iter=10000)
-    
+
     emb = mdl.fit_transform(data.X)
-    
-    
+
     plt.scatter(emb[:, 0], emb[:, 1], c=data.y[:, -1])
-    plt.savefig('{}.jpg'.format(name))
+    plt.savefig('img/{}.jpg'.format(name))
     plt.close()
-    
-     
-    import IPython; IPython.embed()
 
 

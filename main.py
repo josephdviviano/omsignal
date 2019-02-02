@@ -3,6 +3,19 @@
 import utils
 import visualize
 import experiments
+import logging
+import datetime
+
+
+# adds a simple logger
+TSTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+logging.basicConfig(filename='logs/train_{}.log'.format(TSTAMP), level=logging.INFO)
+LOGGER = logging.getLogger('train')
+#LOGHDL = logging.FileHandler('logs/train_{}.log'.format(TSTAMP))
+#LOGHDL.setFormatter(
+#    logging.Formatter("[%(name)s:%(funcName)s:%(lineno)s] %(levelname)s: %(message)s"))
+#LOGGER.addHandler(LOGHDL)
+#LOGGER.setLevel(logging.INFO)
 
 def main():
 

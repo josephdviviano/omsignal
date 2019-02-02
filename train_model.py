@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
@@ -37,16 +39,13 @@ batch_size = 64
 num_epochs = 50
 learning_rate = 0.01
 
-
-
-
 # Recurrent neural network (many-to-one)
 class RNN(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, num_classes):
         super(RNN, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=False)
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_size, num_classes)
         self.softmax = nn.LogSoftmax()
 
@@ -56,7 +55,9 @@ class RNN(nn.Module):
         c0 = torch.zeros(num_layers, x.size(1), self.hidden_size).to(device)
 
         # Forward propagate LSTM
-        out, _ = self.lstm(x, (h0, c0))  # out: tensor of shape (batch_size, seq_length, hidden_size)
+        # out: tensor of shape (batch_size, seq_length, hidden_size)
+        # out, _ = self.lstm(x, (h0, c0))
+        out, _ = self.lstm(x)
 
         # Decode the hidden state of the last time step
         out = self.fc(out[:,-1,:])
@@ -80,12 +81,12 @@ for epoch in range(num_epochs):
 
         # Transfer to GPU
         X_train, y_train = X_train.to(device), y_train.to(device)
-        
 
         # Forward pass
         y_train=torch.tensor(y_train,dtype=torch.long,device=device)
-        outputs = model(X_train)
-        loss = criterion(outputs,y_train)
+        outputs = model(X_train.unsqueeze(1)) # add num_features dimension (2)
+        import IPython; IPython.embed()
+        loss = criterion(outputs, y_train[:, 0])
 
         # Backward and optimize
         optimizer.zero_grad()
