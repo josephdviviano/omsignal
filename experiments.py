@@ -1,9 +1,12 @@
 from torch.nn.modules.loss import MSELoss, CrossEntropyLoss
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils import data
+import logging
+import numpy as np
 import time
 import torch
 import torch.optim as optim
+import os
 
 import models
 import utils
@@ -11,12 +14,16 @@ import utils
 CUDA = torch.cuda.is_available()
 CONFIG = utils.read_config()
 
+LOGGER = logging.getLogger(os.path.basename(__file__))
 
 def calc_losses(y_hats, y_train, out_types, reg_loss, clf_loss, verb=False):
-    """Calculate all losses across all prediction tasks."""
+    """
+    Calculate all losses across all prediction tasks.
+    Also reformats 'predictions' to be a friendly pytorch tensor for later use.
+    """
 
     losses = []
-    scores = []
+    predictions = []
 
     for i in range(len(out_types)):
         y_hat = y_hats[i]
@@ -27,7 +34,7 @@ def calc_losses(y_hats, y_train, out_types, reg_loss, clf_loss, verb=False):
             losses.append(loss)
 
             # Mean squared error.
-            scores.append(loss)
+            predictions.append(y_hat)
 
         elif out_types[i] == 'classification':
             loss = clf_loss(y_hat, y_tru.long())
@@ -35,10 +42,12 @@ def calc_losses(y_hats, y_train, out_types, reg_loss, clf_loss, verb=False):
 
             # Accuracy.
             _, preds = torch.max(y_hat.data, 1)
-            n_correct = torch.sum(preds == y_tru.long().data)
-            scores.append(n_correct)
+            #n_correct = torch.sum(preds == y_tru.long().data)
+            predictions.append(preds.float().unsqueeze(1))
 
-    return(losses, scores)
+    predictions = torch.cat(predictions, dim=1)
+
+    return(losses, predictions)
 
 
 def train(mdl, optimizer):
@@ -114,6 +123,9 @@ def train(mdl, optimizer):
         # Validation loop.
         mdl.eval()
         valid_loss = 0.0
+        all_scores = []
+        all_y_hats = []
+        all_y_trus = []
 
         for batch_idx, (X_valid, y_valid) in enumerate(valid_load):
 
@@ -125,24 +137,35 @@ def train(mdl, optimizer):
             # Model computations
             y_hats = mdl.forward(X_valid.unsqueeze(1))
 
-            losses, scores = calc_losses(
+            losses, y_hats = calc_losses(
                 y_hats, y_valid, out_types, reg_loss, clf_loss, verb=True
             )
 
             loss = sum(losses)
             valid_loss += loss.item()
+            all_scores.append(scores)
+            all_y_hats.append(y_hats)
+            all_y_trus.append(y_valid)
 
         valid_loss /= (batch_idx+1)
 
-        # aggregate scores from calc_losses, and then check them here
-        #utils.scorePerformance()
+        # aggregate predictions and check them here
+        all_y_hats = torch.cat(all_y_hats, dim=0).cpu().detach().numpy()
+        all_y_trus = torch.cat(all_y_trus, dim=0).cpu().numpy()
+        total_scr, scr1, scr2, scr3, scr4 = utils.scorePerformance(
+            all_y_hats[:, 0].astype(np.int32), all_y_trus[:, 0].astype(np.int32),
+            all_y_hats[:, 1].astype(np.int32), all_y_trus[:, 1].astype(np.int32),
+            all_y_hats[:, 2].astype(np.int32), all_y_trus[:, 2].astype(np.int32),
+            all_y_hats[:, 3].astype(np.int32), all_y_trus[:, 3].astype(np.int32)
+        )
 
         t2 = time.time()
         time_elapsed = t2-t1
 
-        print('[{}/{}] {:.2f} sec: loss(train/valid)={:.4f}/{:.4f}'.format(
+        LOGGER.info('[{}/{}] {:.2f} sec: loss(t/v)={:.2f}/{:.2f}, scores=[{:.2f} + {:.2f} + {:.2f} + {:.2f} = {:.2f}]'.format(
             ep+1, CONFIG['training']['epochs'],
-            time_elapsed, train_loss, valid_loss)
+            time_elapsed, train_loss, valid_loss,
+            scr1, scr2, scr3, scr4, total_scr)
         )
 
 

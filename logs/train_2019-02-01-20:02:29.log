@@ -1,0 +1,8 @@
+INFO:experiments.py:[1/1000] 4.28 sec: loss(t/v)=1530.53/1465.28, scores=[nan + nan + nan + 0.01 = nan]
+INFO:experiments.py:[2/1000] 3.74 sec: loss(t/v)=1512.15/1432.96, scores=[nan + nan + nan + 0.00 = nan]
+INFO:experiments.py:[3/1000] 3.58 sec: loss(t/v)=1453.21/1374.83, scores=[nan + nan + nan + 0.00 = nan]
+INFO:experiments.py:[4/1000] 3.56 sec: loss(t/v)=1377.34/1213.45, scores=[0.08 + nan + nan + 0.01 = nan]
+INFO:experiments.py:[5/1000] 3.61 sec: loss(t/v)=1027.69/252.28, scores=[0.05 + 0.03 + nan + 0.00 = nan]
+INFO:experiments.py:[6/1000] 3.57 sec: loss(t/v)=574.65/622.39, scores=[0.07 + 0.04 + 0.12 + 0.00 = 0.00]
+INFO:experiments.py:[7/1000] 3.63 sec: loss(t/v)=672.32/448.57, scores=[0.18 + 0.14 + nan + 0.00 = nan]
+INFO:experiments.py:[8/1000] 3.59 sec: loss(t/v)=384.03/72.95, scores=[0.15 + 0.20 + 0.05 + 0.00 = 0.00]
