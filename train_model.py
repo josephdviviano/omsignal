@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
@@ -20,8 +18,8 @@ params = {
     }
 
 # set up Dataloaders
-train_data = utils.Data(augmentation=True)
-valid_data = utils.Data(train=False, augmentation=True)
+train_data = utils.Data(augmentation=False)
+valid_data = utils.Data(train=False, augmentation=False)
 train_load = data.DataLoader(train_data, **params)
 valid_load = data.DataLoader(valid_data, **params)
 # configure cuda
@@ -31,13 +29,16 @@ torch.backends.cudnn.benchmark = True
 
 # Hyper-parameters
 sequence_length = 3749
-input_size = 7499
-hidden_size = 100
+input_size = 1
+hidden_size = 128
 num_layers = 2
-num_classes = 4
+num_classes = 32
 batch_size = 64
-num_epochs = 50
-learning_rate = 0.01
+num_epochs = 500
+learning_rate = 0.001
+
+
+
 
 # Recurrent neural network (many-to-one)
 class RNN(nn.Module):
@@ -45,9 +46,9 @@ class RNN(nn.Module):
         super(RNN, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=False)
         self.fc = nn.Linear(hidden_size, num_classes)
-        self.softmax = nn.LogSoftmax()
+        self.softmax = nn.Softmax()
 
     def forward(self, x):
         # Set initial hidden and cell states
@@ -55,13 +56,10 @@ class RNN(nn.Module):
         c0 = torch.zeros(num_layers, x.size(1), self.hidden_size).to(device)
 
         # Forward propagate LSTM
-        # out: tensor of shape (batch_size, seq_length, hidden_size)
-        # out, _ = self.lstm(x, (h0, c0))
-        out, _ = self.lstm(x)
-
+        out, _ = self.lstm(x, (h0, c0))  # out: tensor of shape (batch_size, seq_length, hidden_size)
         # Decode the hidden state of the last time step
         out = self.fc(out[:,-1,:])
-        out = self.softmax(out)
+       # out = self.softmax(out)
         return out
 
 model = RNN(input_size, hidden_size, num_layers, num_classes).to(device)
@@ -81,12 +79,12 @@ for epoch in range(num_epochs):
 
         # Transfer to GPU
         X_train, y_train = X_train.to(device), y_train.to(device)
+        
 
         # Forward pass
         y_train=torch.tensor(y_train,dtype=torch.long,device=device)
-        outputs = model(X_train.unsqueeze(1)) # add num_features dimension (2)
-        import IPython; IPython.embed()
-        loss = criterion(outputs, y_train[:, 0])
+        outputs = model(X_train.unsqueeze(2))
+        loss = criterion(outputs,y_train[:,-1])
 
         # Backward and optimize
         optimizer.zero_grad()
@@ -94,26 +92,27 @@ for epoch in range(num_epochs):
         optimizer.step()
 
         if (i+1) % 3 == 0:
-            print("first loop")
-            print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
+            print ('Epoch [{}/{}], Step [{}/{}],Train Loss: {:.4f}'
                    .format(epoch+1, num_epochs, i+1, total_step, loss.item()))
 
 
     # Validation evaluation
-'''
+
     with torch.set_grad_enabled(False):
+        total , correct = 0, 0
         for X_valid, y_valid in valid_load:
 
             # Transfer to GPU
             X_valid, y_valid = X_valid.to(device), y_valid.to(device)
-
-            outputs = model(X_valid)
+            y_valid = torch.tensor(y_valid , dtype = torch.long , device = device)
+            outputs = model(X_valid.unsqueeze(2))
+            loss_valid = criterion(outputs , y_valid[:,-1])
             _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == y_valid).sum().item()
+            total += y_valid.size(0)
+            correct += (predicted == y_valid[:,-1]).sum().item()
 
-        print('Test Accuracy of the model on the 10000 test images: {} %'.format(100 * correct / total))
-'''
+        print('Valid Loss: {:.4f} '.format(loss_valid.item()))
+
 # Save the model checkpoint
 torch.save(model.state_dict(), 'model.ckpt')
 
