@@ -1,37 +1,88 @@
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
-from utils import make_fft
 import numpy as np
 import os
+import utils
 
 # Must switch backend to Agg to be compatible with the queue/singularity.
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
+CONFIG = utils.read_config()
 
-def pca(data, name='pca'):
+def get_samples(data, n):
+    """
+    Gets n X, y samples from input dataloader and returns them as a numpy array.
+    """
+    X, y = [], []
+
+    for i in range(n):
+
+        # Draw a random sample.
+        idx = np.random.randint(0, 160)
+        sample = data[idx]
+        X.append(sample[0].numpy())
+        y.append(sample[1].numpy())
+
+    X = np.vstack(X)
+    y = np.vstack(y)
+
+    return(X, y)
+
+
+def pca(data, n=1000, name='pca'):
+
+    ts_len = CONFIG['models']['lstm']['ts_len']
+    X, y = get_samples(data, n)
+    X = X[:, :ts_len]
 
     mdl = PCA(n_components=2)
-    mdl.fit(data.X)
-    emb = mdl.transform(data.X)
+    mdl.fit(X)
+    emb = mdl.transform(X)
 
-    plt.scatter(emb[:, 0], emb[:, 1], c=data.y[:, -1])
+    plt.scatter(emb[:, 0], emb[:, 1], c=y[:, -1])
     plt.savefig('img/{}.jpg'.format(name))
     plt.close()
 
 
-def plot_spectra(data, name='spec'):
-    mean_spec = np.zeros(1876)
-    n = data.X.shape[0]
+def timeseries(data, name='timeseries'):
 
-    for i in range(n):
-        spec, _ = make_fft(data.X[0, :])
-        mean_spec += np.abs(spec)**2
-    mean_spec /= n
+    ts_len = CONFIG['models']['lstm']['ts_len']
+    X, y = get_samples(data, 10)
+    X = X[:, :ts_len]
 
-    plt.loglog(mean_spec)
+    fig = plt.figure()
+    for i in range(10):
+        ax = fig.add_subplot(5, 2, i+1)
+        ax.plot(X[i, :].T)
+
     plt.savefig('img/{}.jpg'.format(name))
+    plt.close()
+
+
+def spectra(data, n=1000, name='spec', log=False):
+    """Plot of the mean spectra currently input into model."""
+    ts_len = CONFIG['models']['lstm']['ts_len']
+    spec_len = CONFIG['models']['lstm']['spec_len']
+
+    X, y = get_samples(data, n)
+    X = X[:, ts_len:]
+
+    mean = np.mean(X, axis=0)
+    error = np.std(X, axis=0)
+
+    fig = plt.figure()
+    ax1 = fig.add_subplot(111)
+    ax1.plot(np.arange(spec_len), mean, 'k-')
+    ax1.fill_between(np.arange(spec_len), mean-error, mean+error, alpha=0.5)
+
+    if log:
+        ax1.set_xscale('log')
+        ax1.set_yscale('log')
+
+    plt.savefig('img/{}.jpg'.format(name))
+    ax1.cla()
     plt.close()
 
 
