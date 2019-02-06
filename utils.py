@@ -67,6 +67,7 @@ def get_shuffled_data(test_p=0.5):
     """
     CONFIG = read_config()
 
+    # Create merged dataset.
     train_data = read_memfile(
             os.path.join(CONFIG['data'], 'MILA_TrainLabeledData.dat'),
             shape=(160, 3754), dtype='float32'
@@ -77,16 +78,10 @@ def get_shuffled_data(test_p=0.5):
             shape=(160, 3754), dtype='float32'
         )
 
-    #train_X = train_data[:, :3750]
-    #train_y = train_data[:, 3750:]
-    #valid_X = valid_data[:, :3750]
-    #valid_y = valid_data[:, 3750:]
-
-    # Create merged dataset.
     data = np.vstack([train_data, valid_data])
-    ids = data[:, -1]
 
     # Split data shuffled across both datasets (day1=train, day2=valid).
+    ids = data[:, -1]
     sss = StratifiedShuffleSplit(n_splits=1, test_size=test_p)
     for train_idx, valid_idx in sss.split(data, ids):
         train_data, valid_data = data[train_idx], data[valid_idx]
@@ -97,6 +92,7 @@ def get_shuffled_data(test_p=0.5):
     }
 
     return(data)
+
 
 class Data(Dataset):
     """
@@ -352,8 +348,6 @@ def scorePerformance(prMean_pred, prMean_true, rtMean_pred, rtMean_true,
                 or worse while 1.0 means all tasks are solved perfectly.
         - The individual task performance scores are also returned
     """
-
-    # Input checking.
     assert_score(ecgId_pred)
     assert_score(ecgId_true)
     assert_score(rrStd_pred)
@@ -377,25 +371,25 @@ def scorePerformance(prMean_pred, prMean_true, rtMean_pred, rtMean_true,
     # Unbalanced classes would only be and issue if a new train/validation
     # split is created.
     # Any accuracy value worse than random chance will be clipped at zero.
-    ecgIdAccuracy = recall_score(ecgId_true, ecgId_pred, average='macro')
-    adjustementTerm = 1.0 / len(np.unique(ecgId_true))
-    ecgIdAccuracy = (ecgIdAccuracy - adjustementTerm) / (1 - adjustementTerm)
-    if ecgIdAccuracy < 0:
-        ecgIdAccuracy = 0.0
+    id_recall = recall_score(ecgId_true, ecgId_pred, average='macro')
+    adjustement = 1.0 / len(np.unique(ecgId_true))
+    id_recall = (id_recall - adjustement) / (1 - adjustement)
+    if id_recall < 0:
+        id_recall = 0.0
 
     # Compute Kendall correlation coefficients for regression tasks.
     # Any coefficients worse than chance will be clipped to zero.
-    rrStdTau, _ = kendalltau(rrStd_pred, rrStd_true)
-    if rrStdTau < 0:
-        rrStdTau = 0.0
+    rr_std_score, _ = kendalltau(rrStd_pred, rrStd_true)
+    if rr_std_score < 0:
+        rr_std_score = 0.0
 
-    prMeanTau, _ = kendalltau(prMean_pred, prMean_true)
-    if prMeanTau < 0:
-        prMeanTau = 0.0
+    pr_mean_score, _ = kendalltau(prMean_pred, prMean_true)
+    if pr_mean_score < 0:
+        pr_mean_score = 0.0
 
-    rtMeanTau, _ = kendalltau(rtMean_pred, rtMean_true)
-    if rtMeanTau < 0:
-        rtMeanTau = 0.0
+    rt_mean_score, _ = kendalltau(rtMean_pred, rtMean_true)
+    if rt_mean_score < 0:
+        re_mean_score = 0.0
 
     # Compute the final performance score as the geometric mean of the
     # individual task performances. A high geometric mean ensures that
@@ -403,13 +397,10 @@ def scorePerformance(prMean_pred, prMean_true, rtMean_pred, rtMean_true,
     # performance on the other tasks. If any task has chance performance
     # or worse, the overall performance will be zero. If all tasks are
     # perfectly solved, the overall performance will be 1.
-    combinedPerformanceScore = np.power(
-        rrStdTau * prMeanTau * rtMeanTau * ecgIdAccuracy, 0.25)
+    total_score = np.power(
+        rr_std_score * pr_mean_score * rt_mean_score * id_recall, 0.25)
 
-    return(
-        combinedPerformanceScore,
-        prMeanTau, rtMeanTau, rrStdTau, ecgIdAccuracy
-    )
+    return(total_score, pr_mean_score, rt_mean_score, rr_std_score, id_recall)
 
 
 def make_spectogram(x, lognorm=False, fs=16, nperseg=256, noverlap=None):
@@ -444,30 +435,6 @@ def make_spectogram(x, lognorm=False, fs=16, nperseg=256, noverlap=None):
     return(f, t, Zxx)
 
 
-def make_fft(x):
-    """
-    Takes a time-series x and returns the FFT
-    input: x
-    output : R and I; real and imaginary componenet of the real FFT
-    """
-    y = np.fft.rfft(x)
-
-    return(np.real(y), np.imag(y))
-
-
-def plot_ecgfft(x, y):
-    """Plots the real and imaginary part of the FFT of an ECG signal."""
-
-    plt.title('ECG FFT')
-    plt.plot(x[0, 0, :])
-    plt.plot(y[0, 0, :])
-    plt.xlabel('Frequency')
-    plt.ylabel('FFT')
-    plt.legend(['Real', 'Imag'])
-    plt.savefig('fft_visual.png')
-    plt.close()
-
-
 def plot_spectrogram(f, t, Zxx):
 
     plt.title('Spectrogram')
@@ -476,19 +443,5 @@ def plot_spectrogram(f, t, Zxx):
     plt.xlabel('Time')
     plt.savefig('stft.png')
     plt.close()
-
-
-if __name__ == '__main__':
-
-    score_example()
-
-    # reads fake ecg data and plots a FFT
-    fake_ecg = np.random.randn(3750).astype(np.float32)
-    fftr, ffti = make_fft(fake_ecg)
-    plot_ecgfft(fftr, ffti)
-
-    # reads fake ecg data and plots a Spectogram
-    f, t, Zxx = make_spectogram(fake_ecg, True)
-    plot_spectrogram(f, t, Zxx)
 
 
