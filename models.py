@@ -142,8 +142,7 @@ class TSpec(nn.Module):
         # Pass spectra through MLP.
         mlp_act = self.mlp(X_spec)
 
-        # Hidden state is the concatenation lstm and mlp branches.
-        #hid = torch.cat([lstm_act, mlp_act], dim=1)
+        # Hidden state is the concatenation CNN and MLP branches.
         hid = torch.cat([conv_act.squeeze(), mlp_act], dim=1)
 
         # Embed mixed representations from CNN and MLP.
