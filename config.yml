@@ -18,12 +18,12 @@ models:
       - 1
       - 32
 training:
-  epochs: 100
+  epochs: 1000
   learning_rate: 0.01
   momentum: 0.9
   l2: 0
   loss_weights:
-    - 0.1
-    - 0.05
-    - 0.25
+    - 1
+    - 1
+    - 1
     - 1
