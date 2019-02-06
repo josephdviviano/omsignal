@@ -6,6 +6,7 @@ import time
 import torch
 import torch.optim as optim
 import os
+import pprint
 
 import models
 import utils
@@ -32,12 +33,6 @@ def calc_losses(y_hats, y, out_dims, reg_loss, clf_loss, verb=False):
             y_rank = get_paired_ranks(y_tru)
             y1_hat, y2_hat = get_pairs(y_hat)
 
-            try:
-                print('y1/y2/y_rank:\n{}'.format(
-                    torch.stack([y1_hat, y2_hat, y_rank], dim=1)[:, :, 0]))
-            except:
-                import IPython; IPython.embed()
-
             losses.append(reg_loss(y1_hat, y2_hat, y_rank))
             predictions.append(y_hat)
 
@@ -48,9 +43,6 @@ def calc_losses(y_hats, y, out_dims, reg_loss, clf_loss, verb=False):
             losses.append(clf_loss(y_hat, y_tru.long()))
             _, preds = torch.max(y_hat.data, 1)
             predictions.append(preds.float().unsqueeze(1))
-
-            print('pred/true:\n{}'.format(
-                torch.stack([preds, y_tru.long()], dim=1)))
 
     predictions = torch.cat(predictions, dim=1)
 
@@ -83,12 +75,10 @@ def get_paired_ranks(y):
     input, and vice-versa for `y == -1`.
     """
     y = y.cpu()
-    eps = 1e-19
-
     y_rank = y[np.newaxis, :] - y[:, np.newaxis]
 
-    # edge case where the difference between 2 points is 0
-    y_rank[y_rank == 0] = eps
+    # Edge case where the difference between 2 points is 0.
+    y_rank[y_rank == 0] = 1e-19
 
     idx = np.where(np.tril(y_rank, k=-1))
 
@@ -106,16 +96,22 @@ def get_paired_ranks(y):
 
 
 def train(mdl, optimizer):
+    """
+    Trains a submitted model using the submitted optimizer.
+    """
+    pp = pprint.PrettyPrinter(indent=4)
+
+    LOGGER.info('--- Begin Training with configuration:\n{}'.format(
+        pp.pformat(CONFIG)))
 
     out_dims = CONFIG['models']['tspec']['out_dims']
-    loss_weights = CONFIG['training']['loss_weights']
     epochs = CONFIG['training']['epochs']
 
     reg_loss = MarginRankingLoss()
     clf_loss = CrossEntropyLoss()
 
     # Reduce learning rate if we plateau (valid_loss does not decrease)
-    scheduler = ReduceLROnPlateau(optimizer, patience=epochs//10)
+    scheduler = ReduceLROnPlateau(optimizer, patience=20)
     valid_loss = 10000 # initial value
 
     # Shuffles data between day1=test and day2=valid.
@@ -125,22 +121,15 @@ def train(mdl, optimizer):
     train_data = utils.Data(precomputed=data['train'], augmentation=True)
     valid_data = utils.Data(precomputed=data['valid'], augmentation=False)
 
+    load_args = {
+        'batch_size': CONFIG['dataloader']['batch_size'],
+        'num_workers': CONFIG['dataloader']['num_workers'],
+        'shuffle': CONFIG['dataloader']['shuffle']
+    }
+
     # Set up Dataloaders.
-    train_load = torch.utils.data.DataLoader(train_data,
-        batch_size=CONFIG['dataloader']['batch_size'],
-        num_workers=CONFIG['dataloader']['num_workers'],
-        shuffle=CONFIG['dataloader']['shuffle']
-    )
-
-    # Can't shuffle the valid_load so we can use evaluation script.
-    valid_load = torch.utils.data.DataLoader(valid_data,
-        batch_size=CONFIG['dataloader']['batch_size'],
-        num_workers=CONFIG['dataloader']['num_workers']
-    )
-
-    # Configure CUDA.
-    #device = torch.device("cuda:0" if CUDA else "cpu")
-    #torch.backends.cudnn.benchmark = True
+    train_load = torch.utils.data.DataLoader(train_data, **load_args)
+    valid_load = torch.utils.data.DataLoader(valid_data, **load_args)
 
     # Move model to GPU if required.
     if CUDA:
@@ -153,8 +142,6 @@ def train(mdl, optimizer):
         t1 = time.time()
 
         # Train loop.
-
-        # TODO: scheduler might be hurting us!
         scheduler.step(valid_loss)
         mdl.train(True)
         train_loss = 0.0
@@ -169,21 +156,11 @@ def train(mdl, optimizer):
                 y_train = y_train.cuda()
 
             y_hats = mdl.forward(X_train)
-
             losses, y_hats = calc_losses(
                 y_hats, y_train, out_dims, reg_loss, clf_loss)
 
-            # Scale losses into the same range (config.yml).
-            normalized_losses = []
-            losses_print = []
-            for i, loss in enumerate(losses):
-                normalized_losses.append(loss * loss_weights[i])
-                losses_print.append(loss.item() * loss_weights[i])
-
-            print('TRAIN: {}'.format(losses_print))
-
             # Backprop with sum of losses across prediction tasks.
-            loss = sum(normalized_losses)
+            loss = sum(losses)
             loss.backward()
             train_loss += loss.item()
             optimizer.step()
@@ -192,7 +169,7 @@ def train(mdl, optimizer):
 
         train_loss /= (batch_idx+1)
 
-        # aggregate predictions and check them here
+        # Check predictions.
         all_y_hats = torch.cat(all_y_hats, dim=0).cpu().detach().numpy()
         all_y_trus = torch.cat(all_y_trus, dim=0).cpu().numpy()
         t_scrt, t_scr1, t_scr2, t_scr3, t_scr4 = utils.scorePerformance(
@@ -209,7 +186,6 @@ def train(mdl, optimizer):
 
         for batch_idx, (X_valid, y_valid) in enumerate(valid_load):
 
-            # Transfer to GPU
             if CUDA:
                 X_valid = X_valid.cuda()
                 y_valid = y_valid.cuda()
@@ -218,23 +194,15 @@ def train(mdl, optimizer):
             losses, y_hats = calc_losses(
                 y_hats, y_valid, out_dims, reg_loss, clf_loss)
 
-            # Scale losses to the same range.
-            normalized_losses = []
-            losses_print = []
-            for i, loss in enumerate(losses):
-                normalized_losses.append(loss * loss_weights[i])
-                losses_print.append(loss.item() * loss_weights[i])
-
-            print('VALID: {}'.format(losses_print))
-
-            loss = sum(normalized_losses)
+            # Report sum of losses.
+            loss = sum(losses)
             valid_loss += loss.item()
             all_y_hats.append(y_hats)
             all_y_trus.append(y_valid)
 
         valid_loss /= (batch_idx+1)
 
-        # aggregate predictions and check them here
+        # Check predictions.
         all_y_hats = torch.cat(all_y_hats, dim=0).cpu().detach().numpy()
         all_y_trus = torch.cat(all_y_trus, dim=0).cpu().numpy()
         v_scrt, v_scr1, v_scr2, v_scr3, v_scr4 = utils.scorePerformance(
@@ -263,8 +231,8 @@ def train(mdl, optimizer):
         LOGGER.info(msg_info + msg_loss + msg_task)
 
 
-def lstm():
-    """Trains a LSTM classifier."""
+def tspec():
+    """Trains a timeseries/spectra classifier."""
 
     ts_len   = CONFIG['models']['tspec']['ts_len']
     spec_len = CONFIG['models']['tspec']['spec_len']
