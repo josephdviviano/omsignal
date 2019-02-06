@@ -389,7 +389,7 @@ def scorePerformance(prMean_pred, prMean_true, rtMean_pred, rtMean_true,
 
     rt_mean_score, _ = kendalltau(rtMean_pred, rtMean_true)
     if rt_mean_score < 0:
-        re_mean_score = 0.0
+        rt_mean_score = 0.0
 
     # Compute the final performance score as the geometric mean of the
     # individual task performances. A high geometric mean ensures that
