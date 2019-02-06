@@ -1,4 +1,4 @@
-from torch.nn.modules.loss import MSELoss, CrossEntropyLoss
+from torch.nn.modules.loss import MarginRankingLoss, CrossEntropyLoss
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import logging
 import numpy as np
@@ -27,32 +27,95 @@ def calc_losses(y_hats, y, out_dims, reg_loss, clf_loss, verb=False):
 
         # Regression case.
         if out_dim == 1:
-            losses.append(reg_loss(y_hat, y_tru))
+
+            # Required for margin ranking loss.
+            y_rank = get_paired_ranks(y_tru)
+            y1_hat, y2_hat = get_pairs(y_hat)
+
+            try:
+                print('y1/y2/y_rank:\n{}'.format(
+                    torch.stack([y1_hat, y2_hat, y_rank], dim=1)[:, :, 0]))
+            except:
+                import IPython; IPython.embed()
+
+            losses.append(reg_loss(y1_hat, y2_hat, y_rank))
             predictions.append(y_hat)
 
         # Classification case.
         elif out_dim > 1:
+
+            # Cross entropy loss.
             losses.append(clf_loss(y_hat, y_tru.long()))
             _, preds = torch.max(y_hat.data, 1)
             predictions.append(preds.float().unsqueeze(1))
-            #print('pred: {}'.format(preds))
-            #print('true: {}'.format(y_tru))
+
+            print('pred/true:\n{}'.format(
+                torch.stack([preds, y_tru.long()], dim=1)))
 
     predictions = torch.cat(predictions, dim=1)
 
     return(losses, predictions)
 
 
+def get_pairs(y):
+    """
+    For an input vector y, returns vectors y1 and y2 such that y1-y2 gives all
+    unique pairwise subtractions possible in y.
+    """
+    y = y.cpu()
+
+    n = len(y)
+    idx_y2, idx_y1 = np.where(np.tril(np.ones((n, n)), k=-1))
+    y1 = y[torch.LongTensor(idx_y1)]
+    y2 = y[torch.LongTensor(idx_y2)]
+
+    if CUDA:
+        y1 = y1.cuda()
+        y2 = y2.cuda()
+
+    return(y1, y2)
+
+
+def get_paired_ranks(y):
+    """
+    Generate y_rank (for margin ranking loss). If `y == 1` then it assumed the
+    first input should be ranked higher (have a larger value) than the second
+    input, and vice-versa for `y == -1`.
+    """
+    y = y.cpu()
+    eps = 1e-19
+
+    y_rank = y[np.newaxis, :] - y[:, np.newaxis]
+
+    # edge case where the difference between 2 points is 0
+    y_rank[y_rank == 0] = eps
+
+    idx = np.where(np.tril(y_rank, k=-1))
+
+    # Order: y1-y2, y1-y3, y2-y3, y1-y4, y2-y4, y3-y4 ... (lower triangle).
+    y_rank = y_rank[idx[0], idx[1]]
+    y_rank[y_rank > 0] = 1
+    y_rank[y_rank <= 0] = -1
+
+    if CUDA:
+        y_rank = y_rank.cuda()
+
+    y_rank = y_rank[:, np.newaxis]
+
+    return(y_rank)
+
+
 def train(mdl, optimizer):
 
     out_dims = CONFIG['models']['tspec']['out_dims']
     loss_weights = CONFIG['training']['loss_weights']
+    epochs = CONFIG['training']['epochs']
 
-    reg_loss = MSELoss()
+    reg_loss = MarginRankingLoss()
     clf_loss = CrossEntropyLoss()
 
     # Reduce learning rate if we plateau (valid_loss does not decrease)
-    scheduler = ReduceLROnPlateau(optimizer, patience=10)
+    scheduler = ReduceLROnPlateau(optimizer, patience=epochs//10)
     valid_loss = 10000 # initial value
 
     # Shuffles data between day1=test and day2=valid.
@@ -85,14 +148,14 @@ def train(mdl, optimizer):
         reg_loss = reg_loss.cuda()
         clf_loss = clf_loss.cuda()
 
-    for ep in range(CONFIG['training']['epochs']):
+    for ep in range(epochs):
 
         t1 = time.time()
 
         # Train loop.
 
         # TODO: scheduler might be hurting us!
-        #scheduler.step(valid_loss)
+        scheduler.step(valid_loss)
         mdl.train(True)
         train_loss = 0.0
         all_y_hats, all_y_trus = [], []
@@ -106,13 +169,18 @@ def train(mdl, optimizer):
                 y_train = y_train.cuda()
 
             y_hats = mdl.forward(X_train)
+
             losses, y_hats = calc_losses(
                 y_hats, y_train, out_dims, reg_loss, clf_loss)
 
             # Scale losses into the same range (config.yml).
             normalized_losses = []
+            losses_print = []
             for i, loss in enumerate(losses):
                 normalized_losses.append(loss * loss_weights[i])
+                losses_print.append(loss.item() * loss_weights[i])
+
+            print('TRAIN: {}'.format(losses_print))
 
             # Backprop with sum of losses across prediction tasks.
             loss = sum(normalized_losses)
@@ -152,8 +220,12 @@ def train(mdl, optimizer):
 
             # Scale losses to the same range.
             normalized_losses = []
+            losses_print = []
             for i, loss in enumerate(losses):
                 normalized_losses.append(loss * loss_weights[i])
+                losses_print.append(loss.item() * loss_weights[i])
+
+            print('VALID: {}'.format(losses_print))
 
             loss = sum(normalized_losses)
             valid_loss += loss.item()
@@ -176,7 +248,7 @@ def train(mdl, optimizer):
         time_elapsed = time.time() - t1
 
         msg_info = '[{}/{}] {:.2f} sec: '.format(
-            ep+1, CONFIG['training']['epochs'], time_elapsed
+            ep+1, epochs, time_elapsed
         )
         msg_loss = 'loss(t/v)={:.2f}/{:.2f}, '.format(train_loss, valid_loss)
         msg_scr1 = '{:.2f}/{:.2f}'.format(t_scr1, v_scr1)
