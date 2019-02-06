@@ -33,7 +33,7 @@ def get_samples(data, n):
 
 def pca(data, n=1000, name='pca'):
 
-    ts_len = CONFIG['models']['lstm']['ts_len']
+    ts_len = CONFIG['models']['tspec']['ts_len']
     X, y = get_samples(data, n)
     X = X[:, :ts_len]
 
@@ -48,7 +48,7 @@ def pca(data, n=1000, name='pca'):
 
 def timeseries(data, name='timeseries'):
 
-    ts_len = CONFIG['models']['lstm']['ts_len']
+    ts_len = CONFIG['models']['tspec']['ts_len']
     X, y = get_samples(data, 10)
     X = X[:, :ts_len]
 
@@ -63,8 +63,8 @@ def timeseries(data, name='timeseries'):
 
 def spectra(data, n=1000, name='spec', log=False):
     """Plot of the mean spectra currently input into model."""
-    ts_len = CONFIG['models']['lstm']['ts_len']
-    spec_len = CONFIG['models']['lstm']['spec_len']
+    ts_len = CONFIG['models']['tspec']['ts_len']
+    spec_len = CONFIG['models']['tspec']['spec_len']
 
     X, y = get_samples(data, n)
     X = X[:, ts_len:]

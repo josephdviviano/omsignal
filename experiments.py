@@ -1,6 +1,5 @@
 from torch.nn.modules.loss import MSELoss, CrossEntropyLoss
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils import data
 import logging
 import numpy as np
 import time
@@ -46,7 +45,7 @@ def calc_losses(y_hats, y, out_dims, reg_loss, clf_loss, verb=False):
 
 def train(mdl, optimizer):
 
-    out_dims = CONFIG['models']['lstm']['out_dims']
+    out_dims = CONFIG['models']['tspec']['out_dims']
     loss_weights = CONFIG['training']['loss_weights']
 
     reg_loss = MSELoss()
@@ -64,14 +63,14 @@ def train(mdl, optimizer):
     valid_data = utils.Data(precomputed=data['valid'], augmentation=False)
 
     # Set up Dataloaders.
-    train_load = data.DataLoader(train_data,
+    train_load = torch.utils.data.DataLoader(train_data,
         batch_size=CONFIG['dataloader']['batch_size'],
         num_workers=CONFIG['dataloader']['num_workers'],
         shuffle=CONFIG['dataloader']['shuffle']
     )
 
     # Can't shuffle the valid_load so we can use evaluation script.
-    valid_load = data.DataLoader(valid_data,
+    valid_load = torch.utils.data.DataLoader(valid_data,
         batch_size=CONFIG['dataloader']['batch_size'],
         num_workers=CONFIG['dataloader']['num_workers']
     )
@@ -91,7 +90,9 @@ def train(mdl, optimizer):
         t1 = time.time()
 
         # Train loop.
-        scheduler.step(valid_loss)
+
+        # TODO: scheduler might be hurting us!
+        #scheduler.step(valid_loss)
         mdl.train(True)
         train_loss = 0.0
         all_y_hats, all_y_trus = [], []
@@ -193,16 +194,16 @@ def train(mdl, optimizer):
 def lstm():
     """Trains a LSTM classifier."""
 
-    ts_len   = CONFIG['models']['lstm']['ts_len']
-    spec_len = CONFIG['models']['lstm']['spec_len']
-    hid_dim  = CONFIG['models']['lstm']['hid_dim']
-    layers   = CONFIG['models']['lstm']['num_layers']
-    out_dims = CONFIG['models']['lstm']['out_dims']
+    ts_len   = CONFIG['models']['tspec']['ts_len']
+    spec_len = CONFIG['models']['tspec']['spec_len']
+    hid_dim  = CONFIG['models']['tspec']['hid_dim']
+    layers   = CONFIG['models']['tspec']['num_layers']
+    out_dims = CONFIG['models']['tspec']['out_dims']
     lr       = CONFIG['training']['learning_rate']
     momentum = CONFIG['training']['momentum']
     l2       = CONFIG['training']['l2']
 
-    mdl = models.ConvLSTM(ts_len, spec_len, hid_dim, layers, out_dims)
+    mdl = models.TSpec(ts_len, spec_len, hid_dim, layers, out_dims)
     optimizer = optim.SGD(
         mdl.parameters(), lr=lr, momentum=momentum, weight_decay=l2
     )

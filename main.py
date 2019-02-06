@@ -20,7 +20,7 @@ LOGGER = logging.getLogger('train')
 def main():
 
     # run experiment
-    results = experiments.lstm()
+    #results = experiments.lstm()
 
     # Visualizations using non-shuffled data.
     train_data = utils.Data(train=True, augmentation=True)
