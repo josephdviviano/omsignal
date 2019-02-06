@@ -2,13 +2,14 @@
 Utilities for handling data.
 """
 
+from colorednoise import powerlaw_psd_gaussian
 from copy import copy
 from scipy import signal
 from scipy.stats import kendalltau
 from sklearn.metrics import recall_score
+from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import Dataset
-from colorednoise import powerlaw_psd_gaussian
 import numpy as np
 import os
 import torch
@@ -30,7 +31,6 @@ def read_config():
     with open('config.yml', 'r') as fname:
         return(yaml.load(fname))
 
-CONFIG = read_config()
 
 def read_memfile(filename, shape, dtype='float32'):
     """
@@ -57,30 +57,81 @@ def write_memfile(data, filename):
     del fp
 
 
+def get_shuffled_data(test_p=0.5):
+    """
+    Mixes samples from day 1 (train) and 2 (valid), since there might be
+    important distributional differences between them.
+
+    By default, the resulting splits are 50/50, like in the original data.
+    If test_p < 0.5, more data is allocated to the training set.
+    """
+    CONFIG = read_config()
+
+    # Create merged dataset.
+    train_data = read_memfile(
+            os.path.join(CONFIG['data'], 'MILA_TrainLabeledData.dat'),
+            shape=(160, 3754), dtype='float32'
+        )
+
+    valid_data = read_memfile(
+            os.path.join(CONFIG['data'], 'MILA_ValidationLabeledData.dat'),
+            shape=(160, 3754), dtype='float32'
+        )
+
+    data = np.vstack([train_data, valid_data])
+
+    # Split data shuffled across both datasets (day1=train, day2=valid).
+    ids = data[:, -1]
+    sss = StratifiedShuffleSplit(n_splits=1, test_size=test_p)
+    for train_idx, valid_idx in sss.split(data, ids):
+        train_data, valid_data = data[train_idx], data[valid_idx]
+
+    # Return data as a giant dictionary.
+    data = {'train': {'X': train_data[:, :3750], 'y': train_data[:, 3750:]},
+            'valid': {'X': valid_data[:, :3750], 'y': valid_data[:, 3750:]}
+    }
+
+    return(data)
+
+
 class Data(Dataset):
     """
     Object for handling the data, as well as augmentations.
     """
 
-    def __init__(self, train=True, augmentation=False):
+    def __init__(self, precomputed={}, train=True, augmentation=False):
         """
         Loads the data into memory, as well as a method for switching
         user IDs from the original format into a model-friendly format.
         """
-        if train:
-            filename = 'MILA_TrainLabeledData.dat'
+
+        CONFIG = read_config()
+
+        # precomputed can contain shuffled data from get_shuffled_data().
+        # Otherwise we just load directly from disk.
+        if not precomputed:
+            if train:
+                filename = 'MILA_TrainLabeledData.dat'
+            else:
+                filename = 'MILA_ValidationLabeledData.dat'
+
+            data = read_memfile(
+                os.path.join(CONFIG['data'], filename),
+                shape=(160, 3754), dtype='float32'
+            )
+
+            self.X = data[:, :3750]
+            self.y = data[:, 3750:]
+
         else:
-            filename = 'MILA_ValidationLabeledData.dat'
-
-        data = read_memfile(
-            os.path.join(CONFIG['data'], filename),
-            shape=(160, 3754), dtype='float32'
-        )
-
-        self.X = data[:, :3750]
-        self.y = data[:, 3750:]
+            try:
+                self.X = precomputed['X']
+                self.y = precomputed['y']
+            except:
+                raise Exception('precomputed is not a valid input dict!')
 
         # Keep track of the current data format.
+        self.noise_gain = CONFIG['preprocessing']['noise_gain']
         self.format = 'numpy'
         self.augmentation = augmentation
 
@@ -93,7 +144,6 @@ class Data(Dataset):
 
         # y is automatically converted to model-friendly format
         self.convert_y()
-
 
     def __len__(self):
         """Returns the number of samples."""
@@ -123,9 +173,9 @@ class Data(Dataset):
 
         # All samples have (normalized) spectra computed regardless of
         # augmentation.
-        _, pxx = signal.welch(X)
+        _, pxx = signal.periodogram(X)
         spectra = torch.Tensor(pxx)
-        spectra /= torch.std(spectra)
+        #spectra /= torch.std(spectra)
 
         # See config.yml for ts_len=X.size(), spec_len=spectra.size()
         # which is used by the model to split X appropriately.
@@ -188,7 +238,7 @@ class Data(Dataset):
         n = len(sample)
 
         noise = powerlaw_psd_gaussian(1, len(sample)) # 1 = pink noise
-        sample += torch.Tensor(noise)*CONFIG['preprocessing']['noise_gain']
+        sample += torch.Tensor(noise)*self.noise_gain
 
         rotated_sample = torch.zeros(n)
         start_idx = np.random.randint(0, n, 1)[0]
@@ -228,6 +278,10 @@ class Preprocessor(nn.Module):
             # i.e., x is (batch_size=1, sample=1, timeseries=n_elements).
             x = x.unsqueeze(0).unsqueeze(0)
 
+            # Remove total mean and standard deviation.
+            x = (x - torch.mean(x, dim=2, keepdim=True)) / (torch.std(x,
+                dim=2, keepdim=True) + eps)
+
             # Moving average baseline wander removal.
             x = x - F.avg_pool1d(
                 x, kernel_size=self.ma_kernel,
@@ -240,15 +294,8 @@ class Preprocessor(nn.Module):
                 padding=(self.mv_kernel-1) // 2)) + eps
             )
 
-            # Remove total mean and standard deviation.
-            x = (x - torch.mean(x, dim=2, keepdim=True)) / (torch.std(x,
-                dim=2, keepdim=True) + eps)
-
         # Get rid of singleton dimension.
         x = x.squeeze()
-
-        # Final element is always zero.
-        x = x[:-1]
 
         # Don't backpropagate further.
         x = x.detach().contiguous()
@@ -260,7 +307,7 @@ def assert_score(x):
     """Score 'x' should be a 1-D numpy array containing np.int32s."""
     assert isinstance(x, np.ndarray)
     assert len(x.shape) == 1
-    assert x.dtype == np.int32
+    assert x.dtype in [np.int32, np.float32]
 
 
 def scorePerformance(prMean_pred, prMean_true, rtMean_pred, rtMean_true,
@@ -301,8 +348,6 @@ def scorePerformance(prMean_pred, prMean_true, rtMean_pred, rtMean_true,
                 or worse while 1.0 means all tasks are solved perfectly.
         - The individual task performance scores are also returned
     """
-
-    # Input checking.
     assert_score(ecgId_pred)
     assert_score(ecgId_true)
     assert_score(rrStd_pred)
@@ -326,25 +371,25 @@ def scorePerformance(prMean_pred, prMean_true, rtMean_pred, rtMean_true,
     # Unbalanced classes would only be and issue if a new train/validation
     # split is created.
     # Any accuracy value worse than random chance will be clipped at zero.
-    ecgIdAccuracy = recall_score(ecgId_true, ecgId_pred, average='macro')
-    adjustementTerm = 1.0 / len(np.unique(ecgId_true))
-    ecgIdAccuracy = (ecgIdAccuracy - adjustementTerm) / (1 - adjustementTerm)
-    if ecgIdAccuracy < 0:
-        ecgIdAccuracy = 0.0
+    id_recall = recall_score(ecgId_true, ecgId_pred, average='macro')
+    adjustement = 1.0 / len(np.unique(ecgId_true))
+    id_recall = (id_recall - adjustement) / (1 - adjustement)
+    if id_recall < 0:
+        id_recall = 0.0
 
     # Compute Kendall correlation coefficients for regression tasks.
     # Any coefficients worse than chance will be clipped to zero.
-    rrStdTau, _ = kendalltau(rrStd_pred, rrStd_true)
-    if rrStdTau < 0:
-        rrStdTau = 0.0
+    rr_std_score, _ = kendalltau(rrStd_pred, rrStd_true)
+    if rr_std_score < 0:
+        rr_std_score = 0.0
 
-    prMeanTau, _ = kendalltau(prMean_pred, prMean_true)
-    if prMeanTau < 0:
-        prMeanTau = 0.0
+    pr_mean_score, _ = kendalltau(prMean_pred, prMean_true)
+    if pr_mean_score < 0:
+        pr_mean_score = 0.0
 
-    rtMeanTau, _ = kendalltau(rtMean_pred, rtMean_true)
-    if rtMeanTau < 0:
-        rtMeanTau = 0.0
+    rt_mean_score, _ = kendalltau(rtMean_pred, rtMean_true)
+    if rt_mean_score < 0:
+        rt_mean_score = 0.0
 
     # Compute the final performance score as the geometric mean of the
     # individual task performances. A high geometric mean ensures that
@@ -352,13 +397,10 @@ def scorePerformance(prMean_pred, prMean_true, rtMean_pred, rtMean_true,
     # performance on the other tasks. If any task has chance performance
     # or worse, the overall performance will be zero. If all tasks are
     # perfectly solved, the overall performance will be 1.
-    combinedPerformanceScore = np.power(
-        rrStdTau * prMeanTau * rtMeanTau * ecgIdAccuracy, 0.25)
+    total_score = np.power(
+        rr_std_score * pr_mean_score * rt_mean_score * id_recall, 0.25)
 
-    return(
-        combinedPerformanceScore,
-        prMeanTau, rtMeanTau, rrStdTau, ecgIdAccuracy
-    )
+    return(total_score, pr_mean_score, rt_mean_score, rr_std_score, id_recall)
 
 
 def make_spectogram(x, lognorm=False, fs=16, nperseg=256, noverlap=None):
@@ -393,50 +435,6 @@ def make_spectogram(x, lognorm=False, fs=16, nperseg=256, noverlap=None):
     return(f, t, Zxx)
 
 
-def make_fft(x):
-    """
-    Takes a time-series x and returns the FFT
-    input: x
-    output : R and I; real and imaginary componenet of the real FFT
-    """
-    y = np.fft.rfft(x)
-
-    return(np.real(y), np.imag(y))
-
-
-def score_example():
-    prMean_pred = np.random.randn(480).astype(np.float32)
-    prMean_true = (np.random.randn(480).astype(
-        np.float32) / 10.0) + prMean_pred
-
-    rtMean_pred = np.random.randn(480).astype(np.float32)
-    rtMean_true = (np.random.randn(480).astype(
-        np.float32) / 10.0) + rtMean_pred
-
-    rrStd_pred = np.random.randn(480).astype(np.float32)
-    rrStd_true = (np.random.randn(480).astype(np.float32) / 10.0) + rrStd_pred
-
-    ecgId_pred = np.random.randint(low=0, high=32, size=(480,), dtype=np.int32)
-    ecgId_true = np.random.randint(low=0, high=32, size=(480,), dtype=np.int32)
-
-    print(scorePerformance(prMean_true, prMean_pred, rtMean_true, rtMean_pred,
-        rrStd_true, rrStd_pred, ecgId_true, ecgId_pred)
-    )
-
-
-def plot_ecgfft(x, y):
-    """Plots the real and imaginary part of the FFT of an ECG signal."""
-
-    plt.title('ECG FFT')
-    plt.plot(x[0, 0, :])
-    plt.plot(y[0, 0, :])
-    plt.xlabel('Frequency')
-    plt.ylabel('FFT')
-    plt.legend(['Real', 'Imag'])
-    plt.savefig('fft_visual.png')
-    plt.close()
-
-
 def plot_spectrogram(f, t, Zxx):
 
     plt.title('Spectrogram')
@@ -445,19 +443,5 @@ def plot_spectrogram(f, t, Zxx):
     plt.xlabel('Time')
     plt.savefig('stft.png')
     plt.close()
-
-
-if __name__ == '__main__':
-
-    score_example()
-
-    # reads fake ecg data and plots a FFT
-    fake_ecg = np.random.randn(3750).astype(np.float32)
-    fftr, ffti = make_fft(fake_ecg)
-    plot_ecgfft(fftr, ffti)
-
-    # reads fake ecg data and plots a Spectogram
-    f, t, Zxx = make_spectogram(fake_ecg, True)
-    plot_spectrogram(f, t, Zxx)
 
 

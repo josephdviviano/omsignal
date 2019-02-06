@@ -1,6 +1,5 @@
 from torch.nn.modules.loss import MSELoss, CrossEntropyLoss
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils import data
 import logging
 import numpy as np
 import time
@@ -13,37 +12,31 @@ import utils
 
 CUDA = torch.cuda.is_available()
 CONFIG = utils.read_config()
-
 LOGGER = logging.getLogger(os.path.basename(__file__))
 
-def calc_losses(y_hats, y_train, out_types, reg_loss, clf_loss, verb=False):
+def calc_losses(y_hats, y, out_dims, reg_loss, clf_loss, verb=False):
     """
     Calculate all losses across all prediction tasks.
     Also reformats 'predictions' to be a friendly pytorch tensor for later use.
     """
+    losses, predictions = [], []
 
-    losses = []
-    predictions = []
-
-    for i in range(len(out_types)):
+    for i, out_dim in enumerate(out_dims):
         y_hat = y_hats[i]
-        y_tru = y_train[:, i]
+        y_tru = y[:, i]
 
-        if out_types[i] == 'regression':
-            loss = reg_loss(y_hat, y_tru)
-            losses.append(loss)
-
-            # Mean squared error.
+        # Regression case.
+        if out_dim == 1:
+            losses.append(reg_loss(y_hat, y_tru))
             predictions.append(y_hat)
 
-        elif out_types[i] == 'classification':
-            loss = clf_loss(y_hat, y_tru.long())
-            losses.append(loss)
-
-            # Accuracy.
+        # Classification case.
+        elif out_dim > 1:
+            losses.append(clf_loss(y_hat, y_tru.long()))
             _, preds = torch.max(y_hat.data, 1)
-            #n_correct = torch.sum(preds == y_tru.long().data)
             predictions.append(preds.float().unsqueeze(1))
+            #print('pred: {}'.format(preds))
+            #print('true: {}'.format(y_tru))
 
     predictions = torch.cat(predictions, dim=1)
 
@@ -52,8 +45,8 @@ def calc_losses(y_hats, y_train, out_types, reg_loss, clf_loss, verb=False):
 
 def train(mdl, optimizer):
 
-    out_dims = CONFIG['models']['lstm']['out_dims']
-    out_types = CONFIG['models']['lstm']['out_types']
+    out_dims = CONFIG['models']['tspec']['out_dims']
+    loss_weights = CONFIG['training']['loss_weights']
 
     reg_loss = MSELoss()
     clf_loss = CrossEntropyLoss()
@@ -62,18 +55,22 @@ def train(mdl, optimizer):
     scheduler = ReduceLROnPlateau(optimizer, patience=10)
     valid_loss = 10000 # initial value
 
-    train_data = utils.Data(train=True, augmentation=True)
-    valid_data = utils.Data(train=False, augmentation=False)
+    # Shuffles data between day1=test and day2=valid.
+    data = utils.get_shuffled_data(
+        test_p=CONFIG['dataloader']['test_proportion']
+    )
+    train_data = utils.Data(precomputed=data['train'], augmentation=True)
+    valid_data = utils.Data(precomputed=data['valid'], augmentation=False)
 
     # Set up Dataloaders.
-    train_load = data.DataLoader(train_data,
+    train_load = torch.utils.data.DataLoader(train_data,
         batch_size=CONFIG['dataloader']['batch_size'],
         num_workers=CONFIG['dataloader']['num_workers'],
         shuffle=CONFIG['dataloader']['shuffle']
     )
 
     # Can't shuffle the valid_load so we can use evaluation script.
-    valid_load = data.DataLoader(valid_data,
+    valid_load = torch.utils.data.DataLoader(valid_data,
         batch_size=CONFIG['dataloader']['batch_size'],
         num_workers=CONFIG['dataloader']['num_workers']
     )
@@ -93,9 +90,12 @@ def train(mdl, optimizer):
         t1 = time.time()
 
         # Train loop.
-        scheduler.step(valid_loss)
+
+        # TODO: scheduler might be hurting us!
+        #scheduler.step(valid_loss)
         mdl.train(True)
         train_loss = 0.0
+        all_y_hats, all_y_trus = [], []
 
         for batch_idx, (X_train, y_train) in enumerate(train_load):
 
@@ -105,27 +105,39 @@ def train(mdl, optimizer):
                 X_train = X_train.cuda()
                 y_train = y_train.cuda()
 
-            # All lengths are 1 for this experiment (only one timeseries).
-            y_hats = mdl.forward(X_train.unsqueeze(1))
+            y_hats = mdl.forward(X_train)
+            losses, y_hats = calc_losses(
+                y_hats, y_train, out_dims, reg_loss, clf_loss)
+
+            # Scale losses into the same range (config.yml).
+            normalized_losses = []
+            for i, loss in enumerate(losses):
+                normalized_losses.append(loss * loss_weights[i])
 
             # Backprop with sum of losses across prediction tasks.
-            losses, scores= calc_losses(
-                y_hats, y_train, out_types, reg_loss, clf_loss
-            )
-
-            loss = sum(losses)
+            loss = sum(normalized_losses)
             loss.backward()
-            optimizer.step()
             train_loss += loss.item()
+            optimizer.step()
+            all_y_hats.append(y_hats)
+            all_y_trus.append(y_train)
 
         train_loss /= (batch_idx+1)
+
+        # aggregate predictions and check them here
+        all_y_hats = torch.cat(all_y_hats, dim=0).cpu().detach().numpy()
+        all_y_trus = torch.cat(all_y_trus, dim=0).cpu().numpy()
+        t_scrt, t_scr1, t_scr2, t_scr3, t_scr4 = utils.scorePerformance(
+            all_y_hats[:, 0], all_y_trus[:, 0],
+            all_y_hats[:, 1], all_y_trus[:, 1],
+            all_y_hats[:, 2], all_y_trus[:, 2],
+            all_y_hats[:, 3].astype(np.int32), all_y_trus[:, 3].astype(np.int32)
+        )
 
         # Validation loop.
         mdl.eval()
         valid_loss = 0.0
-        all_scores = []
-        all_y_hats = []
-        all_y_trus = []
+        all_y_hats, all_y_trus = [], []
 
         for batch_idx, (X_valid, y_valid) in enumerate(valid_load):
 
@@ -134,16 +146,17 @@ def train(mdl, optimizer):
                 X_valid = X_valid.cuda()
                 y_valid = y_valid.cuda()
 
-            # Model computations
-            y_hats = mdl.forward(X_valid.unsqueeze(1))
-
+            y_hats = mdl.forward(X_valid)
             losses, y_hats = calc_losses(
-                y_hats, y_valid, out_types, reg_loss, clf_loss, verb=True
-            )
+                y_hats, y_valid, out_dims, reg_loss, clf_loss)
 
-            loss = sum(losses)
+            # Scale losses to the same range.
+            normalized_losses = []
+            for i, loss in enumerate(losses):
+                normalized_losses.append(loss * loss_weights[i])
+
+            loss = sum(normalized_losses)
             valid_loss += loss.item()
-            all_scores.append(scores)
             all_y_hats.append(y_hats)
             all_y_trus.append(y_valid)
 
@@ -152,37 +165,45 @@ def train(mdl, optimizer):
         # aggregate predictions and check them here
         all_y_hats = torch.cat(all_y_hats, dim=0).cpu().detach().numpy()
         all_y_trus = torch.cat(all_y_trus, dim=0).cpu().numpy()
-        total_scr, scr1, scr2, scr3, scr4 = utils.scorePerformance(
-            all_y_hats[:, 0].astype(np.int32), all_y_trus[:, 0].astype(np.int32),
-            all_y_hats[:, 1].astype(np.int32), all_y_trus[:, 1].astype(np.int32),
-            all_y_hats[:, 2].astype(np.int32), all_y_trus[:, 2].astype(np.int32),
+        v_scrt, v_scr1, v_scr2, v_scr3, v_scr4 = utils.scorePerformance(
+            all_y_hats[:, 0], all_y_trus[:, 0],
+            all_y_hats[:, 1], all_y_trus[:, 1],
+            all_y_hats[:, 2], all_y_trus[:, 2],
             all_y_hats[:, 3].astype(np.int32), all_y_trus[:, 3].astype(np.int32)
         )
 
-        t2 = time.time()
-        time_elapsed = t2-t1
+        # Log training performance.
+        time_elapsed = time.time() - t1
 
-        LOGGER.info('[{}/{}] {:.2f} sec: loss(t/v)={:.2f}/{:.2f}, scores=[{:.2f} + {:.2f} + {:.2f} + {:.2f} = {:.2f}]'.format(
-            ep+1, CONFIG['training']['epochs'],
-            time_elapsed, train_loss, valid_loss,
-            scr1, scr2, scr3, scr4, total_scr)
+        msg_info = '[{}/{}] {:.2f} sec: '.format(
+            ep+1, CONFIG['training']['epochs'], time_elapsed
         )
+        msg_loss = 'loss(t/v)={:.2f}/{:.2f}, '.format(train_loss, valid_loss)
+        msg_scr1 = '{:.2f}/{:.2f}'.format(t_scr1, v_scr1)
+        msg_scr2 = '{:.2f}/{:.2f}'.format(t_scr2, v_scr2)
+        msg_scr3 = '{:.2f}/{:.2f}'.format(t_scr3, v_scr3)
+        msg_scr4 = '{:.2f}/{:.2f}'.format(t_scr4, v_scr4)
+        msg_scrt = '{:.2f}/{:.2f}'.format(t_scrt, v_scrt)
+        msg_task = 'scores(t/v)=[{} + {} + {} + {} = {}]'.format(
+            msg_scr1, msg_scr2, msg_scr3, msg_scr4, msg_scrt
+        )
+
+        LOGGER.info(msg_info + msg_loss + msg_task)
 
 
 def lstm():
     """Trains a LSTM classifier."""
 
-    ts_len   = CONFIG['models']['lstm']['ts_len']
-    spec_len = CONFIG['models']['lstm']['spec_len']
-    hid_dim  = CONFIG['models']['lstm']['hid_dim']
-    layers   = CONFIG['models']['lstm']['num_layers']
-    dropout  = CONFIG['models']['lstm']['dropout']
-    out_dims = CONFIG['models']['lstm']['out_dims']
+    ts_len   = CONFIG['models']['tspec']['ts_len']
+    spec_len = CONFIG['models']['tspec']['spec_len']
+    hid_dim  = CONFIG['models']['tspec']['hid_dim']
+    layers   = CONFIG['models']['tspec']['num_layers']
+    out_dims = CONFIG['models']['tspec']['out_dims']
     lr       = CONFIG['training']['learning_rate']
     momentum = CONFIG['training']['momentum']
     l2       = CONFIG['training']['l2']
 
-    mdl = models.LSTMClassifier(ts_len, spec_len, hid_dim, layers, dropout, out_dims)
+    mdl = models.TSpec(ts_len, spec_len, hid_dim, layers, out_dims)
     optimizer = optim.SGD(
         mdl.parameters(), lr=lr, momentum=momentum, weight_decay=l2
     )
