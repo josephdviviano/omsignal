@@ -1,11 +1,13 @@
 #!/usr/bin/env python
+"""
+Trains model, saves trained models and visualization.
+"""
+import datetime
+import logging
 
+import experiments
 import utils
 import visualize
-import experiments
-import logging
-import datetime
-
 
 # Adds a simple logger.
 TSTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
