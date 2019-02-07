@@ -1,3 +1,6 @@
+"""
+Generate visualizations from the dataloaders.
+"""
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import numpy as np
