@@ -1,12 +1,15 @@
+"""
+Code for training and evaluating Pytorch models.
+"""
 from torch.nn.modules.loss import MarginRankingLoss, CrossEntropyLoss
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import logging
 import numpy as np
+import os
+import pprint
 import time
 import torch
 import torch.optim as optim
-import os
-import pprint
 
 import models
 import utils
@@ -116,16 +119,15 @@ def train(mdl, optimizer):
 
     # Shuffles data between day1=test and day2=valid.
     data = utils.get_shuffled_data(
-        test_p=CONFIG['dataloader']['test_proportion']
-    )
+        test_p=CONFIG['dataloader']['test_proportion'])
+
     train_data = utils.Data(precomputed=data['train'], augmentation=True)
     valid_data = utils.Data(precomputed=data['valid'], augmentation=False)
 
     load_args = {
         'batch_size': CONFIG['dataloader']['batch_size'],
         'num_workers': CONFIG['dataloader']['num_workers'],
-        'shuffle': CONFIG['dataloader']['shuffle']
-    }
+        'shuffle': CONFIG['dataloader']['shuffle']}
 
     # Set up Dataloaders.
     train_load = torch.utils.data.DataLoader(train_data, **load_args)
@@ -172,12 +174,12 @@ def train(mdl, optimizer):
         # Check predictions.
         all_y_hats = torch.cat(all_y_hats, dim=0).cpu().detach().numpy()
         all_y_trus = torch.cat(all_y_trus, dim=0).cpu().numpy()
-        t_scrt, t_scr1, t_scr2, t_scr3, t_scr4 = utils.scorePerformance(
+        t_scrt, t_scr1, t_scr2, t_scr3, t_scr4 = utils.score_performance(
             all_y_hats[:, 0], all_y_trus[:, 0],
             all_y_hats[:, 1], all_y_trus[:, 1],
             all_y_hats[:, 2], all_y_trus[:, 2],
-            all_y_hats[:, 3].astype(np.int32), all_y_trus[:, 3].astype(np.int32)
-        )
+            all_y_hats[:, 3].astype(np.int32),
+            all_y_trus[:, 3].astype(np.int32))
 
         # Validation loop.
         mdl.eval()
@@ -205,19 +207,18 @@ def train(mdl, optimizer):
         # Check predictions.
         all_y_hats = torch.cat(all_y_hats, dim=0).cpu().detach().numpy()
         all_y_trus = torch.cat(all_y_trus, dim=0).cpu().numpy()
-        v_scrt, v_scr1, v_scr2, v_scr3, v_scr4 = utils.scorePerformance(
+        v_scrt, v_scr1, v_scr2, v_scr3, v_scr4 = utils.score_performance(
             all_y_hats[:, 0], all_y_trus[:, 0],
             all_y_hats[:, 1], all_y_trus[:, 1],
             all_y_hats[:, 2], all_y_trus[:, 2],
-            all_y_hats[:, 3].astype(np.int32), all_y_trus[:, 3].astype(np.int32)
-        )
+            all_y_hats[:, 3].astype(np.int32),
+            all_y_trus[:, 3].astype(np.int32))
 
         # Log training performance.
         time_elapsed = time.time() - t1
 
         msg_info = '[{}/{}] {:.2f} sec: '.format(
-            ep+1, epochs, time_elapsed
-        )
+            ep+1, epochs, time_elapsed)
         msg_loss = 'loss(t/v)={:.2f}/{:.2f}, '.format(train_loss, valid_loss)
         msg_scr1 = '{:.2f}/{:.2f}'.format(t_scr1, v_scr1)
         msg_scr2 = '{:.2f}/{:.2f}'.format(t_scr2, v_scr2)
@@ -225,8 +226,7 @@ def train(mdl, optimizer):
         msg_scr4 = '{:.2f}/{:.2f}'.format(t_scr4, v_scr4)
         msg_scrt = '{:.2f}/{:.2f}'.format(t_scrt, v_scrt)
         msg_task = 'scores(t/v)=[{} + {} + {} + {} = {}]'.format(
-            msg_scr1, msg_scr2, msg_scr3, msg_scr4, msg_scrt
-        )
+            msg_scr1, msg_scr2, msg_scr3, msg_scr4, msg_scrt)
 
         LOGGER.info(msg_info + msg_loss + msg_task)
 
@@ -245,8 +245,7 @@ def tspec():
 
     mdl = models.TSpec(ts_len, spec_len, hid_dim, layers, out_dims)
     optimizer = optim.SGD(
-        mdl.parameters(), lr=lr, momentum=momentum, weight_decay=l2
-    )
+        mdl.parameters(), lr=lr, momentum=momentum, weight_decay=l2)
 
     results = train(mdl, optimizer)
 
