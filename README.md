@@ -1,9 +1,30 @@
 OMsignal
 --------
 
-**Data**:
+Here we propose a simple model that operates on ECG data using 1d convolutions on the time domain, and simultaneously analyzes the spectra of these timeseries using a some fully-connected layers. The model employs batch normalization throughout, with ReLU activations. This model is trained to jointly predict 3 real numbers (mean r-r interval, std r-r interval, mean t-r interval) and the participant ID (32 classes).
 
-+ Located at `/rap/jvb-000-aa/COURS2019/etudiants/data/omsignal/myHeartProject/` (Helios).
+All major training settings are handled in `config.yml`. Most options should be self-explainatory. The remaining ones are handled below:
+
+**config.yml**:
+
++ `data`: location of the input files.
++ `preprocessing`:
+    + `noise_gain`: scaling factor applied to additive noise for data augmentation.
++ `dataloader`:
+    + `test_proportion`: we combine and shuffle the training and validation sets to increase our training set size. This number [0 1] controls the proportion allocated to the validation set.
++ `models`:
+    + `tspec`:
+        + `ts_len`: length of the input timeseries in X.
+        + `spec_len`: length of the spectra of the input timeseries in X (typically ts_len/2).
+        + `hid_dim`: size of all hidden layers in the network. Controls capacity.
+        + `num_layers`: number of hidden layers of the spectra MLP component and the shared embedding components of the network. Controls capacity.
+        + `out_dims`: a list of the predictor dimensions. If an element is 1, the task is treated as a regression. Otherwise it is treated as an n-class classification problem.
+
+**Training Details**:
+
+This model is trained on all 4 tasks jointly. For evaluation, kendal's tau is used (a rank-order correlation measure) for all regression tasks. Therefore, `MarginRankLoss` is employed instead of `MSELoss`, as would be typically used for regression tasks. Classification is trained using `CrossEntropyLoss`. Optimization was done using stochastic gradient descent with momentum. A learning rate scheduler is employed such that the learning rate is reduced by an order of magnitude if the validation loss plateaus for more than 20 epochs.
+
+**Data:**
 
 The provided data is split into 3 binary files:
 
@@ -11,9 +32,9 @@ The provided data is split into 3 binary files:
 + `MILA_ValidationLabeledData.dat` -  labeled data for validation,
 + `MILA_UnlabeledData.dat` -  unlabeled data.
 
-Each labeled dataset (`MILA_TrainLabeledData.dat` and `MILA_ValidationLabeledData.dat`) contains 5 windows of 30 second length ECG data (sampled at 125 Hz) for each of the 32 participants. For each participant, the corresponding samples in the `MILA_TrainLabeledData.dat` and `MILA_ValidationLabeledData.dat` datasets have **not** been collected the **same** day. Similarly, the dataset on which your script will be evaluated contains, for each participant, samples collected on a **different** day too.
+Each labeled dataset (`MILA_TrainLabeledData.dat` and `MILA_ValidationLabeledData.dat`) contains 5 windows of 30 second length ECG data (sampled at 125 Hz) for each of the 32 participants. For each participant, the samples in the `MILA_TrainLabeledData.dat` and `MILA_ValidationLabeledData.dat` datasets have were collected on independent days. The test data was collected on a 3rd day.
 
-For the labeled datasets (`MILA_TrainLabeledData.dat` and `MILA_ValidationLabeledData.dat`), the description of the provided data is as follows:
+The labeled data looks like this:
 
 + `Shape = 160 x 3754` - where `160 = 5 x 32 ` corresponds to the number of windows.
 + `Column 0` to `Column 3749` - Columns corresponding to the ECG data ( `30 seconds x 125 Hz = 3750` ). They contain `float` values.
@@ -22,76 +43,10 @@ For the labeled datasets (`MILA_TrainLabeledData.dat` and `MILA_ValidationLabele
 + `Column 3752` - Columns corresponding to the `RR_StdDev` of the corresponding ECG sample. It contains `float` values.
 + `Column 3753` - Columns corresponding to the `ID` of the participant. It contains `int` values.
 
-The description of the unlabeled dataset (`MILA_UnlabeledData.dat`) is as follows:
+The unlabeled data looks like this:
 
 + `Shape = 657233 x 3750` - where `657233 ` corresponds to the remaining number of unlabeled windows.
 + `Column 0` to `Column 3749` - Columns corresponding to the ECG data ( `30 seconds x 125 Hz = 3750` ). They contain `float` values.
 
-For Block 1, only labeled datasets (`MILA_TrainLabeledData.dat` and `MILA_ValidationLabeledData.dat`) should be considered. The unlabeled dataset is used for the unsupervised parts of Blocks `2` and `3`.
-
-**ID Mapping**
-
-In the labeled datasets, the `max` value of the `ID` is `43` and the `min` value is `0`. However, there is only `32` participants. For the classification task, you ** must ** define a map of the provided IDs to classes that belong to the range `0 -- 31`.
-** ATTENTION: ** when reporting your results for final evaluation, you ** must remapping back ** your predicted classes to the original values, otherwise you may have **bad surprises**.
-
-# Dataset Loading
-
-Datasets are provided as a `memory-map` (`numpy.memmap`). To read them, use the following:
-
-## Generic Script
-
-```
-def read_memfile(filename, shape, dtype='float32'):
-    # read binary data and return as a numpy array
-    fp = np.memmap(filename, dtype=dtype, mode='r', shape=shape)
-    data = np.zeros(shape=shape, dtype=dtype)
-    data[:] = fp[:]
-    del fp
-    return data
-
-```
-
-## Labeled Datasets
-
-```
-trainDataset = read_memfile('MILA_TrainLabeledData.dat', shape=(160, 3754), dtype='float32')
-validDataset = read_memfile('MILA_ValidationLabeledData.dat', shape=(160, 3754), dtype='float32')
-```
-
-## Unlabeled Dataset
-
-```
-unlabeledDataset = read_memfile('MILA_UnlabeledData.dat', shape=(657233, 3750), dtype='float32')
-```
-
-
-This script is provided in the following GitHub path of the project: `utils/memfile_utils.py`.
-
-
-# Evaluation
-
-Your script will be evaluated on a blind test set `MILA_UnlabeledTestData.dat` of shape `160 x 3750` and you are required to produce your result as a `memory-map` of shape `160 x 4` in the same order as the test file and whose columns correspond to:
-
-you are required in this project to provide your result as
-* `Column 0` - predicted `PR_Mean` of the corresponding ECG sample.
-* `Column 1` - predicted `RT_Mean` of the corresponding ECG sample.
-* `Column 2` - predicted `RR_StdDev` of the corresponding ECG sample.
-* `Column 3` - predicted `ID` of the participant to which the ECG sample belongs.
-
-To save a `memory-map`, use the following:
-```
-def write_memfile(data, filename):
-    # write a numpy array 'data' into a binary  data file specified by
-    # 'filename'
-    shape = data.shape
-    dtype = data.dtype
-    fp = np.memmap(filename, dtype=dtype, mode='w+', shape=shape)
-    fp[:] = data[:]
-    del fp
-
-```
-
-This script is provided in the following GitHub path of the project: `utils/memfile_utils.py`.
-
-
+The `ID` column of the dataset can be mapped back and forth between the original range `[0 43]` and a machine-friendly range `[0 32]` using the `ymap()` method of the Data object: `utils.Data.ymap()`. This is used for reporting final values during evaluation.
 
