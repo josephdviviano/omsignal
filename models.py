@@ -15,7 +15,7 @@ CUDA = torch.cuda.is_available()
 
 class TSpec(nn.Module):
 
-    def __init__(self, ts_len, spec_len, hid_dim, layers, out_dims):
+    def __init__(self, ts_len, spec_len, hid_dim, layers, out_dims, freeze):
         """
         Model that accepts, as input, a timeseries concatenated with the
         spectra of that timeseries. The timeseries is fed through a 1DCNN

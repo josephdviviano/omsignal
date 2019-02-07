@@ -239,11 +239,12 @@ def tspec():
     hid_dim  = CONFIG['models']['tspec']['hid_dim']
     layers   = CONFIG['models']['tspec']['num_layers']
     out_dims = CONFIG['models']['tspec']['out_dims']
+    freeze   = CONFIG['models']['tspec']['freeze']
     lr       = CONFIG['training']['learning_rate']
     momentum = CONFIG['training']['momentum']
     l2       = CONFIG['training']['l2']
 
-    mdl = models.TSpec(ts_len, spec_len, hid_dim, layers, out_dims)
+    mdl = models.TSpec(ts_len, spec_len, hid_dim, layers, out_dims, freeze)
     optimizer = optim.SGD(
         mdl.parameters(), lr=lr, momentum=momentum, weight_decay=l2)
 

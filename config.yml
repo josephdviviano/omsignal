@@ -1,6 +1,6 @@
 data: '/rap/jvb-000-aa/COURS2019/etudiants/data/omsignal/myHeartProject/'
 preprocessing:
-  noise_gain: 0.5
+  noise_gain: 0.25
 dataloader:
   test_proportion: 0.2
   batch_size: 64
