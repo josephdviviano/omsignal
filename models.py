@@ -1,3 +1,6 @@
+"""
+Pytorch models.
+"""
 import torch
 import torch.autograd as autograd
 import torch.nn as nn
@@ -104,16 +107,6 @@ class TSpec(nn.Module):
         for out_dim in out_dims:
             self.outputs.append(nn.Linear(hid_dim, out_dim))
 
-    def _init_hidden(self, bs):
-        ht = autograd.Variable(torch.randn(self.layers, bs, self.hid_dim))
-        ct = autograd.Variable(torch.randn(self.layers, bs, self.hid_dim))
-
-        if CUDA:
-            ht = ht.cuda()
-            ct = ct.cuda()
-
-        return((ht,ct))
-
     def forward(self, X):
         """
         X is size=(batch_size, ts_len+spec_len).
@@ -127,17 +120,6 @@ class TSpec(nn.Module):
 
         # Convolutional step on timeseries.
         conv_act = self.conv(X_time.unsqueeze(1))
-
-        # Initialize hidden states of LSTM.
-        #self.hidden = self._init_hidden(batch_size)
-
-        # Pass convolutional activations through LSTM.
-        #_, (ht, ct) = self.lstm(conv_act.transpose(1, 2), self.hidden)
-
-        # ht is the last hidden state of the sequences.
-        # ht = (1 x batch_size x hidden_dim)
-        # ht[-1] = (batch_size x hidden_dim)
-        #lstm_act = ht[-1]
 
         # Pass spectra through MLP.
         mlp_act = self.mlp(X_spec)
