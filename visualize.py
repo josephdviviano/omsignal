@@ -101,3 +101,42 @@ def tsne(data, name='tsne'):
     plt.close()
 
 
+def training(results):
+
+    # Plot loss.
+    plt.plot(results['train']['losses'])
+    plt.plot(results['valid']['losses'])
+    plt.axvline(x=results['best_epoch']-1, color='grey', linestyle='dashed')
+    plt.legend(['Training', 'Validation'])
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Training and Validation Loss')
+    plt.savefig('img/training_loss.jpg')
+    plt.close()
+
+    # Plot scores.
+    fig, ax = plt.subplots()
+    colors =  ['red', 'blue', 'green', 'darkorange', 'black']
+    ax.set_prop_cycle('color', colors)
+    plt.plot(results['train']['scores'])
+    plt.plot(results['valid']['scores'], linestyle='dashed')
+
+    plt.axvline(x=results['best_epoch']-1, color='grey', linestyle='dashed')
+
+    plt.legend(['Training PR Mean',
+                'Training RT Mean',
+                'Training RR Std',
+                'Training ID Recall',
+                'Training Total Score',
+                'Validation PR Mean',
+                'Validation RT Mean',
+                'Validation RR Std',
+                'Validation ID Recall',
+                'Validation Total Score'])
+    plt.xlabel('Epoch')
+    plt.ylabel('Score')
+    plt.title('Training and Validation Scores')
+    plt.savefig('img/training_scores.jpg')
+    plt.close()
+
+
