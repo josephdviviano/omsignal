@@ -18,7 +18,9 @@ models:
       - 1
       - 32
 training:
-  epochs: 1000
+  schedule_patience: 20
+  early_stopping_patience: 100
+  epochs: 10
   learning_rate: 0.01
   momentum: 0.9
   l2: 0.01
