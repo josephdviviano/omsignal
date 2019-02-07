@@ -4,13 +4,15 @@ Trains model, saves trained models and visualization.
 """
 import datetime
 import logging
+import pickle
+import torch
 
 import experiments
 import utils
 import visualize
 
 # Adds a simple logger.
-TSTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+TSTAMP = datetime.datetime.now().strftime("%d%m%y_%Hh%M")
 logging.basicConfig(filename='logs/train_{}.log'.format(TSTAMP), level=logging.INFO)
 LOGGER = logging.getLogger('train')
 
@@ -18,6 +20,17 @@ def main():
 
     # Run model.
     results = experiments.tspec()
+
+    # Plot training curves.
+    visualize.training(results)
+
+    # Save model.
+    torch.save(
+        results['best_model'], 'models/best_tspec_model_{}.pt'.format(TSTAMP))
+
+    # Save results.
+    with open('models/best_tspec_results_{}.pkl'.format(TSTAMP), 'wb') as hdl:
+        pickle.dump(results, hdl, protocol=pickle.HIGHEST_PROTOCOL)
 
     # Visualizations using non-shuffled data.
     train_data = utils.Data(train=True, augmentation=True)
