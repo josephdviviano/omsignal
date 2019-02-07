@@ -1,8 +1,8 @@
 data: '/rap/jvb-000-aa/COURS2019/etudiants/data/omsignal/myHeartProject/'
 preprocessing:
-  noise_gain: 0.25
+  noise_gain: 0.5
 dataloader:
-  test_proportion: 0.5
+  test_proportion: 0.2
   batch_size: 64
   shuffle: True
   num_workers: 6
@@ -18,12 +18,7 @@ models:
       - 1
       - 32
 training:
-  epochs: 100
+  epochs: 1000
   learning_rate: 0.01
   momentum: 0.9
-  l2: 0
-  loss_weights:
-    - 0.1
-    - 0.05
-    - 0.25
-    - 1
+  l2: 0.01

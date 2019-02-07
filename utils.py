@@ -47,8 +47,7 @@ def read_memfile(filename, shape, dtype='float32'):
 
 def write_memfile(data, filename):
     """
-    Write a numpy array 'data' into a binary  data file specified by
-    'filename'.
+    Write a numpy array 'data' into a binary data file 'filename'.
     """
     shape = data.shape
     dtype = data.dtype
@@ -70,13 +69,11 @@ def get_shuffled_data(test_p=0.5):
     # Create merged dataset.
     train_data = read_memfile(
             os.path.join(CONFIG['data'], 'MILA_TrainLabeledData.dat'),
-            shape=(160, 3754), dtype='float32'
-        )
+            shape=(160, 3754), dtype='float32')
 
     valid_data = read_memfile(
             os.path.join(CONFIG['data'], 'MILA_ValidationLabeledData.dat'),
-            shape=(160, 3754), dtype='float32'
-        )
+            shape=(160, 3754), dtype='float32')
 
     data = np.vstack([train_data, valid_data])
 
@@ -88,8 +85,7 @@ def get_shuffled_data(test_p=0.5):
 
     # Return data as a giant dictionary.
     data = {'train': {'X': train_data[:, :3750], 'y': train_data[:, 3750:]},
-            'valid': {'X': valid_data[:, :3750], 'y': valid_data[:, 3750:]}
-    }
+            'valid': {'X': valid_data[:, :3750], 'y': valid_data[:, 3750:]}}
 
     return(data)
 
@@ -117,8 +113,7 @@ class Data(Dataset):
 
             data = read_memfile(
                 os.path.join(CONFIG['data'], filename),
-                shape=(160, 3754), dtype='float32'
-            )
+                shape=(160, 3754), dtype='float32')
 
             self.X = data[:, :3750]
             self.y = data[:, 3750:]
@@ -226,8 +221,7 @@ class Data(Dataset):
         # Labels have been tampered with, this is bad.
         else:
             raise Exception('Training labels have an illegal max={}'.format(
-                np.max(ids))
-            )
+                np.max(ids)))
 
     def augment(self, sample):
         """
@@ -237,9 +231,11 @@ class Data(Dataset):
         """
         n = len(sample)
 
+        # Add coloured noise into the data.
         noise = powerlaw_psd_gaussian(1, len(sample)) # 1 = pink noise
         sample += torch.Tensor(noise)*self.noise_gain
 
+        # Rotate samples.
         rotated_sample = torch.zeros(n)
         start_idx = np.random.randint(0, n, 1)[0]
         start_len = n - start_idx
@@ -257,7 +253,6 @@ class Preprocessor(nn.Module):
         ma_win: window size (secs) for moving average baseline wander removal
         mv_win: window size (secs) for moving average RMS normalization
         """
-
         super(Preprocessor, self).__init__()
 
         # Kernel size to use for moving average baseline wander removal: 2
@@ -271,7 +266,6 @@ class Preprocessor(nn.Module):
     def forward(self, x):
 
         eps = 1e-5
-
         with torch.no_grad():
 
             # Add two dummy dimensions for (batch_size, sample) respectively
@@ -304,13 +298,15 @@ class Preprocessor(nn.Module):
 
 
 def assert_score(x):
-    """Score 'x' should be a 1-D numpy array containing np.int32s."""
+    """
+    Score 'x' should be a 1-D numpy array containing np.int32s or float32s.
+    """
     assert isinstance(x, np.ndarray)
     assert len(x.shape) == 1
     assert x.dtype in [np.int32, np.float32]
 
 
-def scorePerformance(prMean_pred, prMean_true, rtMean_pred, rtMean_true,
+def score_performance(prMean_pred, prMean_true, rtMean_pred, rtMean_true,
     rrStd_pred, rrStd_true, ecgId_pred, ecgId_true):
     """
     Computes the combined multitask performance score.
@@ -401,47 +397,5 @@ def scorePerformance(prMean_pred, prMean_true, rtMean_pred, rtMean_true,
         rr_std_score * pr_mean_score * rt_mean_score * id_recall, 0.25)
 
     return(total_score, pr_mean_score, rt_mean_score, rr_std_score, id_recall)
-
-
-def make_spectogram(x, lognorm=False, fs=16, nperseg=256, noverlap=None):
-    """
-    takes a time-series x and returns the spectogram
-    input:
-           x: time series
-           lognorm: bool - log spectrogram or not (default: False)
-           fs: float - Sampling frequency of the x time series.
-                Defaults to 16.
-           nperseg: int - Length of each segment (default: 256).
-           noverlap: int, Number of points to overlap between segments.
-                  If None, noverlap = nperseg // 8. Defaults to None.
-    output :
-          f : ndarray - Array of sample frequencies.
-          t : ndarray  - Array of segment times.
-          Zxx : ndarray - Spectrogram of x.
-              By default, the last axis of Zxx corresponds
-              to the segment times.
-    """
-
-    f, t, Zxx = signal.spectrogram(
-        x, fs=fs, nperseg=nperseg, noverlap=noverlap
-    )
-
-    if lognorm:
-        Zxx = np.abs(Zxx)
-        mask = Zxx > 0
-        Zxx[mask] = np.log(Zxx[mask])
-        Zxx = (Zxx - np.min(Zxx)) / (np.max(Zxx) - np.min(Zxx))
-
-    return(f, t, Zxx)
-
-
-def plot_spectrogram(f, t, Zxx):
-
-    plt.title('Spectrogram')
-    plt.pcolormesh(t, f, Zxx, vmin=0, vmax=1)
-    plt.ylabel('Frequency')
-    plt.xlabel('Time')
-    plt.savefig('stft.png')
-    plt.close()
 
 
