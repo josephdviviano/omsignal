@@ -320,7 +320,8 @@ def train_mdl(mdl, optimizer):
         'train': {'losses': all_train_losses, 'scores': all_train_scores},
         'valid': {'losses': all_valid_losses, 'scores': all_valid_scores},
         'best_epoch': best_epoch,
-        'best_model': mdl
+        'best_model': mdl,
+        'ymap': train_data.ymap
     }
 
     return(results)

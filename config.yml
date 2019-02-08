@@ -10,8 +10,8 @@ models:
   tspec:
     ts_len: 3750
     spec_len: 1876
-    hid_dim: 100
-    num_layers: 3
+    hid_dim: 500
+    num_layers: 4
     out_dims:
       - 1
       - 1
@@ -20,7 +20,7 @@ models:
 training:
   schedule_patience: 20
   early_stopping_patience: 100
-  epochs: 1000
+  epochs: 10
   learning_rate: 0.01
   momentum: 0.9
-  l2: 0.01
+  l2: 0.001

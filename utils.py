@@ -17,6 +17,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import yaml
 
+import models
+
 # Must switch backend to Agg to be compatible with the queue/singularity.
 import matplotlib
 matplotlib.use('Agg')
@@ -30,6 +32,20 @@ def read_config():
     """Returns the config.yml file as a dictionary."""
     with open('config.yml', 'r') as fname:
         return(yaml.load(fname))
+
+
+def write_results(filename):
+    """Serialize a dictionary containing best model, performance, and ymap."""
+    with open(filename, 'wb') as hdl:
+        pickle.dump(results, hdl, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def read_results(filename):
+    """Load a dictionary containing best model, performance, and ymap."""
+    with open(filename, 'rb') as hdl:
+        results = pickle.load(filename)
+
+    return(results)
 
 
 def read_memfile(filename, shape, dtype='float32'):
