@@ -38,7 +38,7 @@ def read_config():
         return(yaml.load(fname))
 
 
-def write_results(filename):
+def write_results(results, filename):
     """Serialize a dictionary containing best model, performance, and ymap."""
     with open(filename, 'wb') as hdl:
         pickle.dump(results, hdl, protocol=pickle.HIGHEST_PROTOCOL)

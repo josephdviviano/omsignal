@@ -1,0 +1,170 @@
+INFO:experiments.py:+ Begin training with configuration:
+{   'data': '/rap/jvb-000-aa/COURS2019/etudiants/data/omsignal/myHeartProject/',
+    'dataloader': {   'batch_size': 64,
+                      'num_workers': 6,
+                      'shuffle': True,
+                      'test_proportion': 0.2},
+    'models': {   'tspec': {   'hid_dim': 500,
+                               'num_layers': 4,
+                               'out_dims': [1, 1, 1, 32],
+                               'spec_len': 1876,
+                               'ts_len': 3750}},
+    'preprocessing': {'noise_gain': 0.25},
+    'training': {   'early_stopping_patience': 100,
+                    'epochs': 1000,
+                    'l2': 0.001,
+                    'learning_rate': 0.01,
+                    'momentum': 0.9,
+                    'schedule_patience': 20}}
+INFO:experiments.py:+ New best model found: loss=3.466278314590454, score=0.0
+INFO:experiments.py:[1/1000] 4.07 sec: loss(t/v)=3.80/3.47, scores(t/v)=[0.00/0.00 + 0.08/0.00 + 0.00/0.00 + 0.00/0.00 = 0.00/0.00]
+INFO:experiments.py:[2/1000] 3.84 sec: loss(t/v)=3.58/3.47, scores(t/v)=[0.14/0.19 + 0.34/0.06 + 0.14/0.04 + 0.04/0.00 = 0.12/0.00]
+INFO:experiments.py:[3/1000] 3.84 sec: loss(t/v)=3.40/3.47, scores(t/v)=[0.14/0.18 + 0.31/0.14 + 0.22/0.16 + 0.15/0.02 = 0.19/0.09]
+INFO:experiments.py:[4/1000] 3.87 sec: loss(t/v)=3.24/3.47, scores(t/v)=[0.29/0.24 + 0.32/0.00 + 0.27/0.09 + 0.19/0.02 = 0.26/0.00]
+INFO:experiments.py:+ New best model found: loss=3.465435743331909, score=0.0
+INFO:experiments.py:[5/1000] 3.85 sec: loss(t/v)=3.04/3.47, scores(t/v)=[0.36/0.30 + 0.43/0.23 + 0.31/0.20 + 0.32/0.00 = 0.35/0.00]
+INFO:experiments.py:+ New best model found: loss=3.4577019214630127, score=0.17160825640841681
+INFO:experiments.py:[6/1000] 3.84 sec: loss(t/v)=2.86/3.46, scores(t/v)=[0.37/0.32 + 0.51/0.25 + 0.35/0.22 + 0.35/0.05 = 0.39/0.17]
+INFO:experiments.py:+ New best model found: loss=3.422985315322876, score=0.20088420118806083
+INFO:experiments.py:[7/1000] 3.85 sec: loss(t/v)=2.71/3.42, scores(t/v)=[0.32/0.28 + 0.53/0.33 + 0.40/0.28 + 0.42/0.06 = 0.41/0.20]
+INFO:experiments.py:+ New best model found: loss=3.338087558746338, score=0.2560055576883639
+INFO:experiments.py:[8/1000] 3.85 sec: loss(t/v)=2.47/3.34, scores(t/v)=[0.40/0.29 + 0.56/0.39 + 0.41/0.26 + 0.50/0.15 = 0.46/0.26]
+INFO:experiments.py:+ New best model found: loss=3.232020378112793, score=0.27494252939839153
+INFO:experiments.py:[9/1000] 3.86 sec: loss(t/v)=2.28/3.23, scores(t/v)=[0.41/0.19 + 0.53/0.52 + 0.42/0.30 + 0.54/0.19 = 0.47/0.27]
+INFO:experiments.py:+ New best model found: loss=3.116302490234375, score=0.30749664672740673
+INFO:experiments.py:[10/1000] 3.86 sec: loss(t/v)=2.05/3.12, scores(t/v)=[0.48/0.26 + 0.62/0.46 + 0.42/0.29 + 0.62/0.26 = 0.53/0.31]
+INFO:experiments.py:+ New best model found: loss=3.0044937133789062, score=0.2732064579959316
+INFO:experiments.py:[11/1000] 3.86 sec: loss(t/v)=1.81/3.00, scores(t/v)=[0.53/0.24 + 0.60/0.46 + 0.52/0.18 + 0.69/0.29 = 0.58/0.27]
+INFO:experiments.py:+ New best model found: loss=2.884833812713623, score=0.2808672272370682
+INFO:experiments.py:[12/1000] 3.84 sec: loss(t/v)=1.58/2.88, scores(t/v)=[0.55/0.19 + 0.62/0.55 + 0.46/0.22 + 0.79/0.27 = 0.59/0.28]
+INFO:experiments.py:+ New best model found: loss=2.8245909214019775, score=0.26516135964591625
+INFO:experiments.py:[13/1000] 3.86 sec: loss(t/v)=1.37/2.82, scores(t/v)=[0.58/0.29 + 0.60/0.52 + 0.52/0.17 + 0.81/0.19 = 0.62/0.27]
+INFO:experiments.py:[14/1000] 3.86 sec: loss(t/v)=1.14/2.85, scores(t/v)=[0.59/0.21 + 0.57/0.48 + 0.55/0.10 + 0.86/0.21 = 0.63/0.21]
+INFO:experiments.py:[15/1000] 3.86 sec: loss(t/v)=0.91/2.84, scores(t/v)=[0.61/0.27 + 0.65/0.49 + 0.49/0.10 + 0.91/0.19 = 0.65/0.23]
+INFO:experiments.py:[16/1000] 3.85 sec: loss(t/v)=0.79/2.89, scores(t/v)=[0.62/0.30 + 0.61/0.46 + 0.53/0.14 + 0.94/0.18 = 0.66/0.24]
+INFO:experiments.py:[17/1000] 3.83 sec: loss(t/v)=0.60/2.88, scores(t/v)=[0.65/0.34 + 0.64/0.52 + 0.51/0.10 + 0.98/0.18 = 0.67/0.23]
+INFO:experiments.py:[18/1000] 3.87 sec: loss(t/v)=0.45/2.85, scores(t/v)=[0.71/0.36 + 0.64/0.51 + 0.54/0.14 + 0.99/0.21 = 0.70/0.27]
+INFO:experiments.py:[19/1000] 3.84 sec: loss(t/v)=0.40/2.84, scores(t/v)=[0.72/0.34 + 0.64/0.53 + 0.49/0.14 + 0.99/0.19 = 0.69/0.26]
+INFO:experiments.py:[20/1000] 3.85 sec: loss(t/v)=0.31/2.85, scores(t/v)=[0.72/0.31 + 0.63/0.59 + 0.50/0.18 + 0.99/0.19 = 0.69/0.28]
+INFO:experiments.py:[21/1000] 3.88 sec: loss(t/v)=0.24/2.83, scores(t/v)=[0.73/0.35 + 0.66/0.55 + 0.48/0.16 + 1.00/0.21 = 0.69/0.29]
+INFO:experiments.py:+ New best model found: loss=2.8152127265930176, score=0.29223238080869884
+INFO:experiments.py:[22/1000] 3.86 sec: loss(t/v)=0.21/2.82, scores(t/v)=[0.74/0.34 + 0.67/0.58 + 0.55/0.17 + 1.00/0.21 = 0.72/0.29]
+INFO:experiments.py:+ New best model found: loss=2.7954092025756836, score=0.2882243553974454
+INFO:experiments.py:[23/1000] 3.87 sec: loss(t/v)=0.20/2.80, scores(t/v)=[0.76/0.34 + 0.65/0.60 + 0.59/0.16 + 1.00/0.21 = 0.74/0.29]
+INFO:experiments.py:+ New best model found: loss=2.7938120365142822, score=0.3027835895668189
+INFO:experiments.py:[24/1000] 3.89 sec: loss(t/v)=0.17/2.79, scores(t/v)=[0.79/0.35 + 0.71/0.62 + 0.63/0.17 + 1.00/0.23 = 0.77/0.30]
+INFO:experiments.py:+ New best model found: loss=2.787191152572632, score=0.30635590397123635
+INFO:experiments.py:[25/1000] 3.85 sec: loss(t/v)=0.17/2.79, scores(t/v)=[0.81/0.34 + 0.72/0.63 + 0.61/0.18 + 1.00/0.23 = 0.77/0.31]
+INFO:experiments.py:+ New best model found: loss=2.784242868423462, score=0.30104307232271255
+INFO:experiments.py:[26/1000] 3.87 sec: loss(t/v)=0.18/2.78, scores(t/v)=[0.78/0.33 + 0.72/0.63 + 0.64/0.18 + 1.00/0.23 = 0.77/0.30]
+INFO:experiments.py:[27/1000] 3.86 sec: loss(t/v)=0.17/2.79, scores(t/v)=[0.77/0.34 + 0.73/0.62 + 0.65/0.17 + 1.00/0.23 = 0.78/0.30]
+INFO:experiments.py:[28/1000] 3.85 sec: loss(t/v)=0.16/2.79, scores(t/v)=[0.80/0.33 + 0.74/0.63 + 0.63/0.18 + 1.00/0.23 = 0.78/0.30]
+INFO:experiments.py:[29/1000] 3.84 sec: loss(t/v)=0.15/2.80, scores(t/v)=[0.81/0.32 + 0.76/0.62 + 0.64/0.20 + 1.00/0.23 = 0.79/0.31]
+INFO:experiments.py:[30/1000] 3.87 sec: loss(t/v)=0.15/2.80, scores(t/v)=[0.80/0.33 + 0.72/0.61 + 0.66/0.19 + 1.00/0.23 = 0.79/0.31]
+INFO:experiments.py:[31/1000] 3.88 sec: loss(t/v)=0.14/2.79, scores(t/v)=[0.79/0.35 + 0.74/0.62 + 0.64/0.18 + 1.00/0.23 = 0.78/0.31]
+INFO:experiments.py:[32/1000] 3.87 sec: loss(t/v)=0.16/2.79, scores(t/v)=[0.79/0.34 + 0.74/0.62 + 0.66/0.18 + 1.00/0.23 = 0.79/0.30]
+INFO:experiments.py:[33/1000] 3.87 sec: loss(t/v)=0.13/2.79, scores(t/v)=[0.81/0.34 + 0.76/0.62 + 0.65/0.18 + 1.00/0.23 = 0.79/0.30]
+INFO:experiments.py:+ New best model found: loss=2.782689332962036, score=0.2898793360867759
+INFO:experiments.py:[34/1000] 3.87 sec: loss(t/v)=0.14/2.78, scores(t/v)=[0.80/0.33 + 0.75/0.62 + 0.67/0.15 + 1.00/0.23 = 0.80/0.29]
+INFO:experiments.py:[35/1000] 3.84 sec: loss(t/v)=0.16/2.79, scores(t/v)=[0.78/0.33 + 0.72/0.62 + 0.61/0.14 + 1.00/0.23 = 0.76/0.29]
+INFO:experiments.py:[36/1000] 3.88 sec: loss(t/v)=0.15/2.79, scores(t/v)=[0.80/0.33 + 0.74/0.61 + 0.66/0.15 + 1.00/0.23 = 0.79/0.29]
+INFO:experiments.py:[37/1000] 3.84 sec: loss(t/v)=0.13/2.79, scores(t/v)=[0.82/0.34 + 0.76/0.60 + 0.71/0.15 + 1.00/0.23 = 0.82/0.29]
+INFO:experiments.py:[38/1000] 3.87 sec: loss(t/v)=0.14/2.79, scores(t/v)=[0.81/0.34 + 0.74/0.60 + 0.69/0.16 + 1.00/0.23 = 0.80/0.30]
+INFO:experiments.py:[39/1000] 3.83 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.81/0.33 + 0.76/0.59 + 0.68/0.15 + 1.00/0.24 = 0.80/0.29]
+INFO:experiments.py:[40/1000] 3.85 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.83/0.32 + 0.73/0.60 + 0.66/0.15 + 1.00/0.24 = 0.79/0.29]
+INFO:experiments.py:[41/1000] 3.88 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.81/0.33 + 0.77/0.60 + 0.69/0.17 + 1.00/0.24 = 0.81/0.30]
+INFO:experiments.py:[42/1000] 3.86 sec: loss(t/v)=0.13/2.79, scores(t/v)=[0.81/0.33 + 0.75/0.61 + 0.63/0.16 + 1.00/0.24 = 0.79/0.30]
+INFO:experiments.py:[43/1000] 3.87 sec: loss(t/v)=0.13/2.80, scores(t/v)=[0.79/0.33 + 0.74/0.61 + 0.70/0.16 + 1.00/0.23 = 0.80/0.29]
+INFO:experiments.py:[44/1000] 3.89 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.80/0.33 + 0.77/0.61 + 0.68/0.15 + 1.00/0.21 = 0.81/0.28]
+INFO:experiments.py:[45/1000] 3.85 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.82/0.32 + 0.74/0.61 + 0.68/0.16 + 1.00/0.23 = 0.80/0.29]
+INFO:experiments.py:[46/1000] 3.87 sec: loss(t/v)=0.14/2.79, scores(t/v)=[0.81/0.33 + 0.75/0.61 + 0.64/0.16 + 1.00/0.23 = 0.79/0.29]
+INFO:experiments.py:[47/1000] 3.87 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.80/0.32 + 0.77/0.60 + 0.71/0.16 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[48/1000] 3.87 sec: loss(t/v)=0.13/2.80, scores(t/v)=[0.81/0.33 + 0.75/0.60 + 0.70/0.15 + 1.00/0.24 = 0.81/0.29]
+INFO:experiments.py:[49/1000] 3.87 sec: loss(t/v)=0.11/2.80, scores(t/v)=[0.82/0.34 + 0.77/0.60 + 0.70/0.14 + 1.00/0.24 = 0.82/0.29]
+INFO:experiments.py:[50/1000] 3.87 sec: loss(t/v)=0.13/2.80, scores(t/v)=[0.81/0.33 + 0.74/0.60 + 0.69/0.14 + 1.00/0.23 = 0.80/0.28]
+INFO:experiments.py:[51/1000] 3.90 sec: loss(t/v)=0.14/2.81, scores(t/v)=[0.79/0.34 + 0.74/0.61 + 0.65/0.15 + 1.00/0.23 = 0.79/0.29]
+INFO:experiments.py:[52/1000] 3.89 sec: loss(t/v)=0.12/2.81, scores(t/v)=[0.82/0.33 + 0.77/0.61 + 0.70/0.16 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[53/1000] 3.87 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.81/0.33 + 0.75/0.60 + 0.67/0.16 + 1.00/0.23 = 0.80/0.29]
+INFO:experiments.py:[54/1000] 3.87 sec: loss(t/v)=0.12/2.81, scores(t/v)=[0.82/0.33 + 0.73/0.60 + 0.70/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[55/1000] 3.88 sec: loss(t/v)=0.11/2.80, scores(t/v)=[0.82/0.34 + 0.77/0.60 + 0.71/0.14 + 1.00/0.24 = 0.82/0.29]
+INFO:experiments.py:[56/1000] 3.88 sec: loss(t/v)=0.13/2.80, scores(t/v)=[0.81/0.33 + 0.74/0.60 + 0.69/0.14 + 1.00/0.23 = 0.80/0.28]
+INFO:experiments.py:[57/1000] 3.89 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.83/0.33 + 0.74/0.60 + 0.69/0.14 + 1.00/0.23 = 0.81/0.28]
+INFO:experiments.py:[58/1000] 3.88 sec: loss(t/v)=0.13/2.81, scores(t/v)=[0.80/0.33 + 0.76/0.60 + 0.70/0.15 + 1.00/0.23 = 0.81/0.28]
+INFO:experiments.py:[59/1000] 3.90 sec: loss(t/v)=0.11/2.80, scores(t/v)=[0.81/0.33 + 0.76/0.60 + 0.67/0.14 + 1.00/0.23 = 0.80/0.28]
+INFO:experiments.py:[60/1000] 3.88 sec: loss(t/v)=0.12/2.81, scores(t/v)=[0.80/0.33 + 0.74/0.60 + 0.63/0.14 + 1.00/0.21 = 0.78/0.28]
+INFO:experiments.py:[61/1000] 3.88 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.82/0.34 + 0.77/0.60 + 0.68/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[62/1000] 3.86 sec: loss(t/v)=0.13/2.80, scores(t/v)=[0.81/0.34 + 0.74/0.61 + 0.69/0.16 + 1.00/0.23 = 0.80/0.29]
+INFO:experiments.py:[63/1000] 3.87 sec: loss(t/v)=0.13/2.80, scores(t/v)=[0.80/0.34 + 0.74/0.59 + 0.67/0.15 + 1.00/0.24 = 0.79/0.29]
+INFO:experiments.py:[64/1000] 3.85 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.81/0.34 + 0.76/0.60 + 0.72/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[65/1000] 3.86 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.80/0.34 + 0.78/0.60 + 0.68/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[66/1000] 3.84 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.80/0.34 + 0.75/0.60 + 0.69/0.14 + 1.00/0.23 = 0.80/0.28]
+INFO:experiments.py:[67/1000] 3.86 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.81/0.34 + 0.76/0.60 + 0.67/0.15 + 1.00/0.23 = 0.80/0.29]
+INFO:experiments.py:[68/1000] 3.87 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.81/0.33 + 0.78/0.60 + 0.66/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[69/1000] 3.86 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.83/0.34 + 0.77/0.60 + 0.70/0.14 + 1.00/0.23 = 0.82/0.28]
+INFO:experiments.py:[70/1000] 3.87 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.83/0.34 + 0.74/0.61 + 0.72/0.14 + 1.00/0.24 = 0.82/0.29]
+INFO:experiments.py:[71/1000] 3.91 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.80/0.33 + 0.76/0.60 + 0.70/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[72/1000] 3.91 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.82/0.33 + 0.73/0.61 + 0.66/0.15 + 1.00/0.23 = 0.79/0.29]
+INFO:experiments.py:[73/1000] 3.86 sec: loss(t/v)=0.12/2.81, scores(t/v)=[0.82/0.33 + 0.75/0.60 + 0.64/0.15 + 1.00/0.21 = 0.79/0.28]
+INFO:experiments.py:[74/1000] 3.86 sec: loss(t/v)=0.13/2.81, scores(t/v)=[0.82/0.33 + 0.76/0.60 + 0.67/0.15 + 1.00/0.23 = 0.80/0.29]
+INFO:experiments.py:[75/1000] 3.85 sec: loss(t/v)=0.12/2.81, scores(t/v)=[0.83/0.33 + 0.75/0.60 + 0.70/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[76/1000] 3.86 sec: loss(t/v)=0.13/2.81, scores(t/v)=[0.79/0.34 + 0.75/0.60 + 0.67/0.15 + 1.00/0.24 = 0.79/0.29]
+INFO:experiments.py:[77/1000] 3.86 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.82/0.34 + 0.75/0.60 + 0.67/0.15 + 1.00/0.24 = 0.80/0.29]
+INFO:experiments.py:[78/1000] 3.88 sec: loss(t/v)=0.12/2.81, scores(t/v)=[0.83/0.34 + 0.75/0.60 + 0.71/0.14 + 1.00/0.24 = 0.82/0.29]
+INFO:experiments.py:[79/1000] 3.89 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.81/0.34 + 0.78/0.59 + 0.69/0.14 + 1.00/0.23 = 0.81/0.28]
+INFO:experiments.py:[80/1000] 3.89 sec: loss(t/v)=0.11/2.79, scores(t/v)=[0.81/0.34 + 0.76/0.59 + 0.70/0.14 + 1.00/0.23 = 0.81/0.28]
+INFO:experiments.py:[81/1000] 3.87 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.81/0.34 + 0.77/0.59 + 0.70/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[82/1000] 3.87 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.81/0.34 + 0.76/0.59 + 0.68/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[83/1000] 3.87 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.80/0.34 + 0.78/0.60 + 0.71/0.16 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[84/1000] 3.87 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.82/0.34 + 0.75/0.60 + 0.70/0.17 + 1.00/0.23 = 0.81/0.30]
+INFO:experiments.py:[85/1000] 3.89 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.81/0.34 + 0.75/0.60 + 0.67/0.16 + 1.00/0.23 = 0.80/0.29]
+INFO:experiments.py:[86/1000] 3.89 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.83/0.34 + 0.76/0.60 + 0.71/0.16 + 1.00/0.23 = 0.82/0.29]
+INFO:experiments.py:[87/1000] 3.89 sec: loss(t/v)=0.11/2.80, scores(t/v)=[0.81/0.34 + 0.76/0.60 + 0.69/0.16 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[88/1000] 3.90 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.83/0.34 + 0.75/0.61 + 0.67/0.16 + 1.00/0.21 = 0.80/0.29]
+INFO:experiments.py:[89/1000] 3.87 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.84/0.33 + 0.77/0.60 + 0.71/0.14 + 1.00/0.24 = 0.82/0.29]
+INFO:experiments.py:[90/1000] 3.88 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.84/0.34 + 0.75/0.60 + 0.69/0.14 + 1.00/0.23 = 0.81/0.28]
+INFO:experiments.py:[91/1000] 3.88 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.83/0.34 + 0.74/0.60 + 0.69/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[92/1000] 3.87 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.83/0.34 + 0.76/0.61 + 0.68/0.16 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[93/1000] 3.88 sec: loss(t/v)=0.11/2.79, scores(t/v)=[0.81/0.34 + 0.77/0.61 + 0.69/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[94/1000] 3.86 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.81/0.34 + 0.76/0.60 + 0.68/0.15 + 1.00/0.23 = 0.80/0.29]
+INFO:experiments.py:[95/1000] 3.88 sec: loss(t/v)=0.11/2.79, scores(t/v)=[0.82/0.34 + 0.77/0.60 + 0.69/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[96/1000] 3.87 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.82/0.33 + 0.75/0.60 + 0.70/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[97/1000] 3.86 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.83/0.33 + 0.77/0.60 + 0.71/0.15 + 1.00/0.23 = 0.82/0.29]
+INFO:experiments.py:[98/1000] 3.87 sec: loss(t/v)=0.13/2.80, scores(t/v)=[0.82/0.34 + 0.75/0.59 + 0.68/0.15 + 1.00/0.23 = 0.80/0.29]
+INFO:experiments.py:[99/1000] 3.88 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.81/0.34 + 0.78/0.59 + 0.70/0.15 + 1.00/0.23 = 0.81/0.28]
+INFO:experiments.py:[100/1000] 3.87 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.82/0.34 + 0.77/0.59 + 0.68/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[101/1000] 3.89 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.84/0.34 + 0.76/0.59 + 0.68/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[102/1000] 3.87 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.82/0.34 + 0.78/0.59 + 0.67/0.13 + 1.00/0.23 = 0.81/0.28]
+INFO:experiments.py:[103/1000] 3.87 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.83/0.34 + 0.76/0.60 + 0.70/0.15 + 1.00/0.23 = 0.82/0.29]
+INFO:experiments.py:[104/1000] 3.88 sec: loss(t/v)=0.11/2.79, scores(t/v)=[0.80/0.34 + 0.76/0.60 + 0.67/0.15 + 1.00/0.23 = 0.80/0.29]
+INFO:experiments.py:[105/1000] 3.87 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.83/0.33 + 0.79/0.60 + 0.71/0.16 + 1.00/0.23 = 0.83/0.29]
+INFO:experiments.py:[106/1000] 3.88 sec: loss(t/v)=0.11/2.79, scores(t/v)=[0.84/0.34 + 0.80/0.61 + 0.71/0.15 + 1.00/0.23 = 0.83/0.29]
+INFO:experiments.py:[107/1000] 3.90 sec: loss(t/v)=0.13/2.79, scores(t/v)=[0.83/0.33 + 0.77/0.61 + 0.67/0.14 + 1.00/0.23 = 0.81/0.28]
+INFO:experiments.py:[108/1000] 3.90 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.82/0.34 + 0.77/0.61 + 0.67/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[109/1000] 3.88 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.81/0.34 + 0.76/0.60 + 0.67/0.15 + 1.00/0.23 = 0.80/0.29]
+INFO:experiments.py:[110/1000] 3.87 sec: loss(t/v)=0.11/2.79, scores(t/v)=[0.81/0.34 + 0.76/0.61 + 0.66/0.16 + 1.00/0.23 = 0.80/0.29]
+INFO:experiments.py:[111/1000] 3.87 sec: loss(t/v)=0.13/2.79, scores(t/v)=[0.81/0.34 + 0.76/0.60 + 0.71/0.15 + 1.00/0.24 = 0.81/0.30]
+INFO:experiments.py:[112/1000] 3.88 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.80/0.34 + 0.78/0.60 + 0.70/0.16 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[113/1000] 3.88 sec: loss(t/v)=0.11/2.79, scores(t/v)=[0.82/0.34 + 0.75/0.60 + 0.69/0.16 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[114/1000] 3.88 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.82/0.34 + 0.75/0.60 + 0.68/0.15 + 1.00/0.23 = 0.80/0.29]
+INFO:experiments.py:[115/1000] 3.87 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.82/0.34 + 0.78/0.60 + 0.66/0.14 + 1.00/0.23 = 0.81/0.28]
+INFO:experiments.py:[116/1000] 3.87 sec: loss(t/v)=0.11/2.79, scores(t/v)=[0.84/0.34 + 0.77/0.59 + 0.68/0.15 + 1.00/0.23 = 0.82/0.28]
+INFO:experiments.py:[117/1000] 3.87 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.82/0.33 + 0.76/0.59 + 0.65/0.15 + 1.00/0.23 = 0.80/0.29]
+INFO:experiments.py:[118/1000] 3.89 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.80/0.33 + 0.73/0.60 + 0.67/0.15 + 1.00/0.23 = 0.79/0.29]
+INFO:experiments.py:[119/1000] 3.89 sec: loss(t/v)=0.11/2.80, scores(t/v)=[0.83/0.33 + 0.76/0.59 + 0.70/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[120/1000] 3.86 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.83/0.34 + 0.77/0.60 + 0.72/0.15 + 1.00/0.23 = 0.82/0.29]
+INFO:experiments.py:[121/1000] 3.88 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.82/0.34 + 0.76/0.60 + 0.69/0.14 + 1.00/0.23 = 0.81/0.28]
+INFO:experiments.py:[122/1000] 3.88 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.81/0.34 + 0.75/0.60 + 0.69/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[123/1000] 3.87 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.80/0.34 + 0.75/0.60 + 0.69/0.15 + 1.00/0.23 = 0.80/0.29]
+INFO:experiments.py:[124/1000] 3.90 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.81/0.34 + 0.75/0.61 + 0.70/0.14 + 1.00/0.23 = 0.81/0.28]
+INFO:experiments.py:[125/1000] 3.88 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.82/0.34 + 0.75/0.60 + 0.69/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[126/1000] 3.89 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.81/0.34 + 0.76/0.60 + 0.69/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[127/1000] 3.86 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.81/0.33 + 0.76/0.60 + 0.71/0.14 + 1.00/0.23 = 0.81/0.28]
+INFO:experiments.py:[128/1000] 3.86 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.82/0.33 + 0.77/0.60 + 0.68/0.15 + 1.00/0.23 = 0.81/0.29]
+INFO:experiments.py:[129/1000] 3.89 sec: loss(t/v)=0.11/2.80, scores(t/v)=[0.80/0.33 + 0.76/0.60 + 0.68/0.15 + 1.00/0.23 = 0.80/0.28]
+INFO:experiments.py:[130/1000] 3.89 sec: loss(t/v)=0.12/2.80, scores(t/v)=[0.80/0.32 + 0.75/0.60 + 0.66/0.14 + 1.00/0.23 = 0.79/0.28]
+INFO:experiments.py:[131/1000] 3.91 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.80/0.34 + 0.71/0.60 + 0.70/0.13 + 1.00/0.23 = 0.79/0.28]
+INFO:experiments.py:[132/1000] 3.87 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.81/0.33 + 0.76/0.60 + 0.64/0.15 + 1.00/0.23 = 0.79/0.28]
+INFO:experiments.py:[133/1000] 3.88 sec: loss(t/v)=0.12/2.79, scores(t/v)=[0.80/0.33 + 0.77/0.60 + 0.70/0.14 + 1.00/0.23 = 0.81/0.28]
+INFO:experiments.py:[134/1000] 3.84 sec: loss(t/v)=0.11/2.80, scores(t/v)=[0.81/0.33 + 0.76/0.60 + 0.68/0.13 + 1.00/0.23 = 0.80/0.28]
+INFO:experiments.py:Impatient! No gen. improvement in 100 epochs
+INFO:experiments.py:Early Stopping: Rewinding to epoch 34
