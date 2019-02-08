@@ -5,22 +5,27 @@ import argparse
 import numpy as np
 import torch
 
-from utils import read_memfile, read_config, Data
+from utils import read_memfile, write_memfile, read_results, read_config, Data
 from experiments import evalu_loop
+from models import TSpec
 
+CONFIG = read_config()
+CUDA = torch.cuda.is_available()
 
-CONFIG = load_config()
-
-def eval_model(dataset_file, model_filename):
+def eval_model(dataset_file, model_filename, results_filename):
     """
+    Docstring for eval_model.
     """
     model = None
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # Load your best model.
     if model_filename:
+
         model_filename = Path(model_filename)
-        model = torch.load(model_filename, map_location=device)
+        model = torch.load(model_filename)
+
+        if CUDA:
+            model = model.cuda()
 
         print("\nLoading model from", model_filename.absolute())
 
@@ -30,9 +35,20 @@ def eval_model(dataset_file, model_filename):
             'batch_size': CONFIG['dataloader']['batch_size'],
             'num_workers': CONFIG['dataloader']['num_workers']}
 
-        data = read_memfile(dataset_file, shape=(160, 3754), dtype='float32')
-        data = {'X': data[:, :3750], 'y': data[:, 3750:]}
+        N_SUBJ = 10
+        data = read_memfile(dataset_file, shape=(N_SUBJ, 3750), dtype='float32')
+        results = read_results(results_filename)
+
+        # y is generated as we do not have predictions here.
+        fake_y = np.random.randint(1, 42, size=((N_SUBJ, 4)))
+        fake_y[0, -1] = 42
+
+        data = {'X': data, 'y': fake_y}
         data = Data(precomputed=data, augmentation=False)
+
+        # Overwrite ymap in Data with one computed using real data.
+        data.ymap = results['ymap']
+
         dataloader = torch.utils.data.DataLoader(data, **load_args)
 
         # Generate predictions with model.
@@ -40,11 +56,11 @@ def eval_model(dataset_file, model_filename):
         y_pred = results['preds']
 
         # Convert ID column back to original format.
-        y_pred[:, -1] = data.ymap.inverse_transform(y_pred[:, -1])
-
+        ids = y_pred[:, -1]
+        ids = data.ymap.inverse_transform(ids.astype(np.int))
+        y_pred[:, -1] = ids
 
     else:
-
         print("\nYou did not specify a model, generating dummy data instead!")
         c = 32
         n = 10
@@ -70,17 +86,17 @@ if __name__ == "__main__":
 
     # TODO: Ensure permissions.
     group_name = "b1pomt3"
-    model_filename = "/home/user25/code/omsignal/models/best_tspec_model_080219_11h41.pt"
+    model_filename = "/home/user25/code/omsignal/models/best_tspec_model_080219_12h40.pt"
+    results_filename = "/home/user25/code/omsignal/models/best_tspec_results_080219_12h40.pkl"
 
-    # DO NOT MODIFY
     print("\nEvaluating results ... ")
-    y_pred = eval_model(dataset_file, model_filename)
+    y_pred = eval_model(dataset_file, model_filename, results_filename)
 
     assert type(y_pred) is np.ndarray, "Return a numpy array of dim=1"
-    assert len(y_pred.shape) == 1, "Make sure ndim=1 for y_pred"
+    assert len(y_pred.shape) == 2, "Make sure ndim=2 for y_pred"
 
     results_fname = Path(results_dir) / (group_name + '_eval_pred.txt')
 
     print('\nSaving results to ', results_fname.absolute())
-    write_memfile(results_fname, y_pred)
+    write_memfile(y_pred, results_fname)
 
