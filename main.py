@@ -19,14 +19,13 @@ LOGGER = logging.getLogger('train')
 def main():
 
     # Run model.
-    results = experiments.tspec()
+    model, results = experiments.tspec()
 
     # Plot training curves.
     visualize.training(results)
 
     # Save model.
-    torch.save(
-        results['best_model'], 'models/best_tspec_model_{}.pt'.format(TSTAMP))
+    torch.save(model, 'models/best_tspec_model_{}.pt'.format(TSTAMP))
 
     # Save results.
     utils.write_results('models/best_tspec_results_{}.pkl')

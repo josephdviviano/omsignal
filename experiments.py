@@ -163,7 +163,7 @@ def train_loop(mdl, optimizer, loader):
     return(results)
 
 
-def evalu_loop(mdl, loader):
+def evalu_loop(mdl, loader, return_preds=False):
     """Validation/Test evaluation loop."""
     mdl.eval()
     mean_loss = 0.0
@@ -189,10 +189,28 @@ def evalu_loop(mdl, loader):
     total_score, pr_mu, rt_mu, rr_std, id_recall = check_predictions(
         all_y_hats, all_y_trus)
 
+    # If required (for evaluation), return the actual predictions made.
+    if return_preds:
+        results_y_hat = []
+
+        # Loop through epochs.
+        for y_hats in all_y_hats:
+
+            # Loop through each prediction (n-element list).
+            for y_hat in y_hats:
+                results_y_hat.append(y_hat.cpu().detach().numpy())
+
+        # Convert to a single numpy array.
+        results_y_hat = np.vstack(results_y_hat)
+
+    else:
+        results_y_hat = None
+
     results = {
         'scores': {'total_score': total_score, 'pr_mu': pr_mu, 'rt_mu': rt_mu,
                    'rr_std': rr_std, 'id_recall': id_recall},
-        'loss': {'mean': mean_loss}
+        'loss': {'mean': mean_loss},
+        'preds': results_y_hat
     }
 
     return(results)
@@ -320,11 +338,10 @@ def train_mdl(mdl, optimizer):
         'train': {'losses': all_train_losses, 'scores': all_train_scores},
         'valid': {'losses': all_valid_losses, 'scores': all_valid_scores},
         'best_epoch': best_epoch,
-        'best_model': mdl,
         'ymap': train_data.ymap
     }
 
-    return(results)
+    return(mdl, results)
 
 
 def tspec():

@@ -1,80 +1,78 @@
-import argparse
-from pathlib import Path
+#!/usr/bin/env python
 
+from pathlib import Path
+import argparse
 import numpy as np
 import torch
 
+from utils import read_memfile, read_config, Data
+from experiments import evalu_loop
+
+
+CONFIG = load_config()
 
 def eval_model(dataset_file, model_filename):
-
-    '''
-    Skeleton for your testing function. Modify/add
-    all arguments you will need.
-
-    '''
+    """
+    """
     model = None
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    # Load your best model
+
+    # Load your best model.
     if model_filename:
         model_filename = Path(model_filename)
-        print("\nLoading model from", model_filename.absolute())
         model = torch.load(model_filename, map_location=device)
+
+        print("\nLoading model from", model_filename.absolute())
 
     if model:
 
-        # # # # # # # # # # # #
-        # Add inference here  #
-        # # # # # # # # # # # #
-        pass
+        load_args = {
+            'batch_size': CONFIG['dataloader']['batch_size'],
+            'num_workers': CONFIG['dataloader']['num_workers']}
+
+        data = read_memfile(dataset_file, shape=(160, 3754), dtype='float32')
+        data = {'X': data[:, :3750], 'y': data[:, 3750:]}
+        data = Data(precomputed=data, augmentation=False)
+        dataloader = torch.utils.data.DataLoader(data, **load_args)
+
+        # Generate predictions with model.
+        results = evalu_loop(model, dataloader, return_preds=True)
+        y_pred = results['preds']
+
+        # Convert ID column back to original format.
+        y_pred[:, -1] = data.ymap.inverse_transform(y_pred[:, -1])
+
 
     else:
 
         print("\nYou did not specify a model, generating dummy data instead!")
-        n_classes = 32
-        num_data = 10
+        c = 32
+        n = 10
 
         y_pred = np.concatenate(
-            [np.random.rand(num_data, 3), 
-             np.random.randint(0, n_classes, (num_data, 1))
-             ], axis=1
-        ).astype(np.float32)
+            [np.random.rand(n, 3), np.random.randint(0, c, (n, 1))],
+                axis=1).astype(np.float32)
 
-    return y_pred
+    return(y_pred)
 
 
 if __name__ == "__main__":
 
-    ###### DO NOT MODIFY THIS SECTION ######
     parser = argparse.ArgumentParser()
-
-    
-    parser.add_argument("--dataset", type=str, default='')
-    # dataset_dir will be the absolute path to the dataset to be used for
-    # evaluation.
-
-    parser.add_argument("--results_dir", type=str, default='')
-    # results_dir will be the absolute path to a directory where the output of
-    # your inference will be saved.
+    parser.add_argument("--dataset", type=str, default='',
+        help='Absolute path to the evaluation dataset.')
+    parser.add_argument("--results_dir", type=str, default='',
+        help='Absolute path the results directory.')
 
     args = parser.parse_args()
     dataset_file = args.dataset
     results_dir = args.results_dir
-    #########################################
 
+    # TODO: Ensure permissions.
+    group_name = "b1pomt3"
+    model_filename = "/home/user25/code/omsignal/models/best_tspec_model_080219_11h41.pt"
 
-    ###### MODIFY THIS SECTION ######
-    # Put your group name here
-    group_name = "b1phutN"
-
-    model_filename = None
-    # model_filename should be the absolute path on shared disk to your
-    # best model. You need to ensure that they are available to evaluators on
-    # Helios.
-
-    #################################
-
-
-    ###### DO NOT MODIFY THIS SECTION ######
+    # DO NOT MODIFY
     print("\nEvaluating results ... ")
     y_pred = eval_model(dataset_file, model_filename)
 
@@ -85,4 +83,4 @@ if __name__ == "__main__":
 
     print('\nSaving results to ', results_fname.absolute())
     write_memfile(results_fname, y_pred)
-    #########################################
+

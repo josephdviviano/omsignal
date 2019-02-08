@@ -20,7 +20,7 @@ models:
 training:
   schedule_patience: 20
   early_stopping_patience: 100
-  epochs: 10
+  epochs: 1000
   learning_rate: 0.01
   momentum: 0.9
   l2: 0.001
