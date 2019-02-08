@@ -84,8 +84,8 @@ if __name__ == "__main__":
 
     # TODO: Ensure permissions.
     group_name = "b1pomt3"
-    model_filename = "/home/user25/code/omsignal/models/best_tspec_model_080219_12h40.pt"
-    results_filename = "/home/user25/code/omsignal/models/best_tspec_results_080219_12h40.pkl"
+    model_filename = "/rap/jvb-000-aa/COURS2019/etudiants/submissions/b1pomt3/model/best_model.pth"
+    results_filename = "/rap/jvb-000-aa/COURS2019/etudiants/submissions/b1pomt3/model/best_model_results.pkl"
 
     print("\nEvaluating results ... ")
     y_pred = eval_model(dataset_file, model_filename, results_filename)
