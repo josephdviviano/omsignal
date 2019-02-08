@@ -13,6 +13,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 CONFIG = utils.read_config()
+PKG_PATH = os.path.dirname(os.path.abspath(__file__))
 
 def get_samples(data, n):
     """
@@ -45,7 +46,7 @@ def pca(data, n=1000, name='pca'):
     emb = mdl.transform(X)
 
     plt.scatter(emb[:, 0], emb[:, 1], c=y[:, -1])
-    plt.savefig('img/{}.jpg'.format(name))
+    plt.savefig(os.path.join(PKG_PATH, 'img/{}.jpg'.format(name)))
     plt.close()
 
 
@@ -60,7 +61,7 @@ def timeseries(data, name='timeseries'):
         ax = fig.add_subplot(5, 2, i+1)
         ax.plot(X[i, :].T)
 
-    plt.savefig('img/{}.jpg'.format(name))
+    plt.savefig(os.path.join(PKG_PATH, 'img/{}.jpg'.format(name)))
     plt.close()
 
 
@@ -84,7 +85,7 @@ def spectra(data, n=1000, name='spec', log=False):
         ax1.set_xscale('log')
         ax1.set_yscale('log')
 
-    plt.savefig('img/{}.jpg'.format(name))
+    plt.savefig(os.path.join(PKG_PATH, 'img/{}.jpg'.format(name)))
     ax1.cla()
     plt.close()
 
@@ -97,7 +98,7 @@ def tsne(data, name='tsne'):
     emb = mdl.fit_transform(data.X)
 
     plt.scatter(emb[:, 0], emb[:, 1], c=data.y[:, -1])
-    plt.savefig('img/{}.jpg'.format(name))
+    plt.savefig(os.path.join(PKG_PATH, 'img/{}.jpg'.format(name)))
     plt.close()
 
 
@@ -111,7 +112,7 @@ def training(results):
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.title('Training and Validation Loss')
-    plt.savefig('img/training_loss.jpg')
+    plt.savefig(os.path.join(PKG_PATH, 'img/training_loss.jpg'))
     plt.close()
 
     # Plot scores.
@@ -136,7 +137,7 @@ def training(results):
     plt.xlabel('Epoch')
     plt.ylabel('Score')
     plt.title('Training and Validation Scores')
-    plt.savefig('img/training_scores.jpg')
+    plt.savefig(os.path.join(PKG_PATH, 'img/training_scores.jpg'))
     plt.close()
 
 

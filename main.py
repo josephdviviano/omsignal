@@ -6,14 +6,18 @@ import datetime
 import logging
 import pickle
 import torch
+import os
 
 import experiments
 import utils
 import visualize
 
+PKG_PATH = os.path.dirname(os.path.abspath(__file__))
+
 # Adds a simple logger.
 TSTAMP = datetime.datetime.now().strftime("%d%m%y_%Hh%M")
-logging.basicConfig(filename='logs/train_{}.log'.format(TSTAMP), level=logging.INFO)
+LOGNAME = os.path.join(PKG_PATH, 'logs/train_{}.log'.format(TSTAMP))
+logging.basicConfig(filename=LOGNAME, level=logging.INFO)
 LOGGER = logging.getLogger('train')
 
 def main():
@@ -25,10 +29,14 @@ def main():
     visualize.training(results)
 
     # Save model.
-    torch.save(model, 'models/best_tspec_model_{}.pt'.format(TSTAMP))
+    torch.save(model,
+        os.path.join(PKG_PATH,
+            'models/best_tspec_model_{}.pt'.format(TSTAMP)))
 
     # Save results.
-    utils.write_results(results, 'models/best_tspec_results_{}.pkl'.format(TSTAMP))
+    utils.write_results(results,
+        os.path.join(PKG_PATH,
+            'models/best_tspec_results_{}.pkl'.format(TSTAMP)))
 
     # Visualizations using non-shuffled data.
     train_data = utils.Data(train=True, augmentation=True)
@@ -43,5 +51,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
