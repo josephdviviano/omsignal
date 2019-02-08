@@ -12,10 +12,12 @@ from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import Dataset
 import numpy as np
 import os
+import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import yaml
+import pickle
 
 import models
 
@@ -30,7 +32,9 @@ np.random.seed(seed=12345678)
 
 def read_config():
     """Returns the config.yml file as a dictionary."""
-    with open('config.yml', 'r') as fname:
+    pkg_path = os.path.dirname(os.path.abspath(__file__))
+    cfg_path = os.path.join(pkg_path, 'config.yml')
+    with open(cfg_path, 'r') as fname:
         return(yaml.load(fname))
 
 
@@ -43,7 +47,7 @@ def write_results(filename):
 def read_results(filename):
     """Load a dictionary containing best model, performance, and ymap."""
     with open(filename, 'rb') as hdl:
-        results = pickle.load(filename)
+        results = pickle.load(hdl)
 
     return(results)
 

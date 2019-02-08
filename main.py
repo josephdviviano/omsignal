@@ -28,7 +28,7 @@ def main():
     torch.save(model, 'models/best_tspec_model_{}.pt'.format(TSTAMP))
 
     # Save results.
-    utils.write_results('models/best_tspec_results_{}.pkl')
+    utils.write_results('models/best_tspec_results_{}.pkl'.format(TSTAMP))
 
     # Visualizations using non-shuffled data.
     train_data = utils.Data(train=True, augmentation=True)
