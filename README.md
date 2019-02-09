@@ -3,6 +3,10 @@ OMsignal
 
 Here we propose a simple model that operates on ECG data using 1d convolutions on the time domain, and simultaneously analyzes the spectra of these timeseries using a some fully-connected layers. The model employs batch normalization throughout, with ReLU activations. This model is trained to jointly predict 3 real numbers (mean r-r interval, std r-r interval, mean t-r interval) and the participant ID (32 classes).
 
+`main.py` can be executed to run all experiments. It will train a model using `config.yml` and output all results in `logs/`, `models/`, and `img`/.
+
+`evaluation/eval.py` can be executed to run the best trained model against the test set.
+
 All major training settings are handled in `config.yml`. Most options should be self-explainatory. The remaining ones are handled below:
 
 **config.yml**:
@@ -19,6 +23,9 @@ All major training settings are handled in `config.yml`. Most options should be 
         + `hid_dim`: size of all hidden layers in the network. Controls capacity.
         + `num_layers`: number of hidden layers of the spectra MLP component and the shared embedding components of the network. Controls capacity.
         + `out_dims`: a list of the predictor dimensions. If an element is 1, the task is treated as a regression. Otherwise it is treated as an n-class classification problem.
++ `training`:
+    + `schedule_patience`: number of epochs where the validation loss does not decrease to wait before decreasing the learning rate by an order of magnitude.
+    + `early_stopping_patience`: number of epochs to wait where the validation loss does not decrease before deciding to stop training altogether.
 
 **Training Details**:
 
