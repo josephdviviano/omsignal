@@ -33,13 +33,13 @@ def eval_model(dataset_file, model_filename, results_filename):
 
     if model:
 
-        N_SUBJ = 10
+        N_SUBJ = 160
         data = utils.read_memfile(dataset_file, shape=(N_SUBJ, 3750), dtype='float32')
         results = utils.read_results(results_filename)
 
         # y is generated as we do not have predictions here.
-        fake_y = np.random.randint(1, 42, size=((N_SUBJ, 4)))
-        fake_y[0, -1] = 42
+        fake_y = np.random.randint(1, 32, size=((N_SUBJ, 4)))
+        fake_y[0, -1] = 32
 
         data = {'X': data, 'y': fake_y}
         data = utils.Data(precomputed=data, augmentation=False)
